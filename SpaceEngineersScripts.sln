@@ -1,0 +1,22 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.31019.35
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AutoInv", "AutoInv\AutoInv.csproj", "{FE13C0E7-5694-4526-AE2F-EFF56AB30411}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|x64 = Debug|x64
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{FE13C0E7-5694-4526-AE2F-EFF56AB30411}.Debug|x64.ActiveCfg = Debug|x64
+		{FE13C0E7-5694-4526-AE2F-EFF56AB30411}.Debug|x64.Build.0 = Debug|x64
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {9A5CBE30-E307-4CB4-A588-D77B9FB653F5}
+	EndGlobalSection
+EndGlobal
