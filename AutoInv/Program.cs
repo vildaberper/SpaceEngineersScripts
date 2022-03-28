@@ -92,9 +92,6 @@ namespace IngameScript
 
         public List<string> TYPES = new List<string>()
 {
-    "MyObjectBuilder_AmmoMagazine/Missile200mm",
-    "MyObjectBuilder_AmmoMagazine/NATO_5p56x45mm",
-    "MyObjectBuilder_AmmoMagazine/NATO_25x184mm",
     "MyObjectBuilder_Component/BulletproofGlass",
     "MyObjectBuilder_Component/Canvas",
     "MyObjectBuilder_Component/Computer",
@@ -117,7 +114,10 @@ namespace IngameScript
     "MyObjectBuilder_Component/SteelPlate",
     "MyObjectBuilder_Component/Superconductor",
     "MyObjectBuilder_Component/Thrust",
-    "MyObjectBuilder_GasContainerObject/HydrogenBottle",
+    "MyObjectBuilder_Component/ZoneChip",
+    "MyObjectBuilder_AmmoMagazine/Missile200mm",
+    "MyObjectBuilder_AmmoMagazine/NATO_5p56x45mm",
+    "MyObjectBuilder_AmmoMagazine/NATO_25x184mm",
     "MyObjectBuilder_Ingot/Cobalt",
     "MyObjectBuilder_Ingot/Gold",
     "MyObjectBuilder_Ingot/Iron",
@@ -136,29 +136,46 @@ namespace IngameScript
     "MyObjectBuilder_Ore/Organic", // What is this?
     "MyObjectBuilder_Ore/Platinum",
     "MyObjectBuilder_Ore/Scrap",
-    "MyObjectBuilder_Ore/Silver",
     "MyObjectBuilder_Ore/Silicon",
+    "MyObjectBuilder_Ore/Silver",
     "MyObjectBuilder_Ore/Stone",
     "MyObjectBuilder_Ore/Uranium",
-    "MyObjectBuilder_OxygenContainerObject/OxygenBottle",
-    "MyObjectBuilder_PhysicalGunObject/AutomaticRifleItem",
-    "MyObjectBuilder_PhysicalGunObject/AngleGrinderItem",
+    "MyObjectBuilder_ConsumableItem/ClangCola",
+    "MyObjectBuilder_ConsumableItem/CosmicCoffee",
+    "MyObjectBuilder_Datapad/Datapad",
+    "MyObjectBuilder_ConsumableItem/Medkit",
+    "MyObjectBuilder_Package/Package",
+    "MyObjectBuilder_ConsumableItem/Powerkit",
+    "MyObjectBuilder_PhysicalObject/SpaceCredit",
+    "MyObjectBuilder_PhysicalGunObject/AngleGrinder4Item",
+    "MyObjectBuilder_PhysicalGunObject/HandDrill4Item",
+    "MyObjectBuilder_PhysicalGunObject/Welder4Item",
     "MyObjectBuilder_PhysicalGunObject/AngleGrinder2Item",
-    "MyObjectBuilder_PhysicalGunObject/AngleGrinder3Item",
-    "MyObjectBuilder_PhysicalGunObject/HandDrillItem",
     "MyObjectBuilder_PhysicalGunObject/HandDrill2Item",
-    "MyObjectBuilder_PhysicalGunObject/HandDrill3Item",
-    "MyObjectBuilder_PhysicalGunObject/PreciseAutomaticRifleItem",
-    "MyObjectBuilder_PhysicalGunObject/UltimateAutomaticRifleItem",
-    "MyObjectBuilder_PhysicalGunObject/WelderItem",
     "MyObjectBuilder_PhysicalGunObject/Welder2Item",
+    "MyObjectBuilder_PhysicalGunObject/AngleGrinderItem",
+    "MyObjectBuilder_PhysicalGunObject/HandDrillItem",
+    "MyObjectBuilder_GasContainerObject/HydrogenBottle",
+    "MyObjectBuilder_PhysicalGunObject/AutomaticRifleItem",
+    "MyObjectBuilder_PhysicalGunObject/UltimateAutomaticRifleItem",
+    "MyObjectBuilder_PhysicalGunObject/RapidFireAutomaticRifleItem",
+    "MyObjectBuilder_PhysicalGunObject/PreciseAutomaticRifleItem",
+    "MyObjectBuilder_OxygenContainerObject/OxygenBottle",
+    "MyObjectBuilder_PhysicalGunObject/AdvancedHandHeldLauncherItem",
+    "MyObjectBuilder_PhysicalGunObject/AngleGrinder3Item",
+    "MyObjectBuilder_PhysicalGunObject/HandDrill3Item",
     "MyObjectBuilder_PhysicalGunObject/Welder3Item",
+    "MyObjectBuilder_PhysicalGunObject/BasicHandHeldLauncherItem",
+    "MyObjectBuilder_PhysicalGunObject/SemiAutoPistolItem",
+    "MyObjectBuilder_PhysicalGunObject/ElitePistolItem",
+    "MyObjectBuilder_PhysicalGunObject/FullAutoPistolItem",
+    "MyObjectBuilder_PhysicalGunObject/WelderItem",
 
     // Low priority
     "MyObjectBuilder_Ingot/Stone"
 };
 
-        public Dictionary<string, HashSet<String>> alias = new Dictionary<string, HashSet<string>>()
+        public Dictionary<string, HashSet<string>> alias = new Dictionary<string, HashSet<string>>()
 {
     { "gravel", new HashSet<string>(){ "MyObjectBuilder_Ingot/Stone" } }
 };
