@@ -22,29 +22,29 @@ namespace IngameScript
 {
     partial class Program : MyGridProgram
     {
-        /*
-        * Configuration
-        */
+/*
+* Configuration
+*/
 
-        // Whether the script should automatically pull from all inventories (those listed in ALWAYS_PULL are always pulled from)
+// Whether the script should automatically pull from all inventories (those listed in ALWAYS_PULL are always pulled from)
         const bool ONLY_MANAGE_WITH_TAG = true;
 
-        // This is used to allow multiple parts (subgrids) of a ship/station count as the same.
+// This is used to allow multiple parts (subgrids) of a ship/station count as the same.
         public HashSet<string> SAME_GRID = new HashSet<string>()
         {
-            //"PortableBatteryShip"
+    //"PortableBatteryShip"
         };
 
-        // R, G, B values 0-7
+// R, G, B values 0-7
         static readonly char COLOR_BACKGROUND = Pixel(0, 0, 0);
         static readonly char COLOR_GRAPH = Pixel(5, 5, 5);
         static readonly char COLOR_POWER = Pixel(0, 0, 7);
 
-        /*
-        * Advanced configuration
-        */
+/*
+* Advanced configuration
+*/
 
-        // Always pull from thease types, even if they have no tag
+// Always pull from thease types, even if they have no tag
         public HashSet<string> ALWAYS_PULL = new HashSet<string>()
 {
     "Sandbox.Game.Entities.Blocks.MyCryoChamber",
@@ -54,12 +54,12 @@ namespace IngameScript
     "Sandbox.Game.Weapons.MyShipGrinder"
 };
 
-        // Default priority of target inventories.
+// Default priority of target inventories.
         const int DEFAULT_PRIORITY = -1000000;
 
-        /*
-        * ONLY EDIT BELOW THIS LINE IF YOU KNOW WHAT YOU ARE DOING
-        */
+/*
+* ONLY EDIT BELOW THIS LINE IF YOU KNOW WHAT YOU ARE DOING
+*/
 
         readonly bool OUTPUT_IN_TERMINAL = false;
 
@@ -92,6 +92,21 @@ namespace IngameScript
 
         public List<string> TYPES = new List<string>()
 {
+    "MyObjectBuilder_AmmoMagazine/NATO_5p56x45mm",
+    "MyObjectBuilder_AmmoMagazine/LargeCalibreAmmo",
+    "MyObjectBuilder_AmmoMagazine/MediumCalibreAmmo",
+    "MyObjectBuilder_AmmoMagazine/AutocannonClip",
+    "MyObjectBuilder_AmmoMagazine/NATO_25x184mm",
+    "MyObjectBuilder_AmmoMagazine/LargeRailgunAmmo",
+    "MyObjectBuilder_AmmoMagazine/Missile200mm",
+    "MyObjectBuilder_AmmoMagazine/AutomaticRifleGun_Mag_20rd",
+    "MyObjectBuilder_AmmoMagazine/UltimateAutomaticRifleGun_Mag_30rd",
+    "MyObjectBuilder_AmmoMagazine/RapidFireAutomaticRifleGun_Mag_50rd",
+    "MyObjectBuilder_AmmoMagazine/PreciseAutomaticRifleGun_Mag_5rd",
+    "MyObjectBuilder_AmmoMagazine/SemiAutoPistolMagazine",
+    "MyObjectBuilder_AmmoMagazine/ElitePistolMagazine",
+    "MyObjectBuilder_AmmoMagazine/FullAutoPistolMagazine",
+    "MyObjectBuilder_AmmoMagazine/SmallRailgunAmmo",
     "MyObjectBuilder_Component/BulletproofGlass",
     "MyObjectBuilder_Component/Canvas",
     "MyObjectBuilder_Component/Computer",
@@ -115,9 +130,6 @@ namespace IngameScript
     "MyObjectBuilder_Component/Superconductor",
     "MyObjectBuilder_Component/Thrust",
     "MyObjectBuilder_Component/ZoneChip",
-    "MyObjectBuilder_AmmoMagazine/Missile200mm",
-    "MyObjectBuilder_AmmoMagazine/NATO_5p56x45mm",
-    "MyObjectBuilder_AmmoMagazine/NATO_25x184mm",
     "MyObjectBuilder_Ingot/Cobalt",
     "MyObjectBuilder_Ingot/Gold",
     "MyObjectBuilder_Ingot/Iron",
@@ -528,7 +540,7 @@ namespace IngameScript
 
             public LCDTextBlock(IMyTextPanel block, TimeSpan elapsedTime) : base(block, elapsedTime)
             {
-                text = lcdBlock.GetPublicText();
+                text = lcdBlock.GetText();
             }
 
             public override void Tick(TimeSpan elapsedTime)
@@ -539,8 +551,7 @@ namespace IngameScript
             public void Write(string text)
             {
                 if (text.Equals(this.text)) return;
-                lcdBlock.WritePublicText(this.text = text);
-                lcdBlock.ShowPublicTextOnScreen();
+                lcdBlock.WriteText(this.text = text);
             }
 
         }
