@@ -5,6 +5,8 @@ VisualStudioVersion = 16.0.31019.35
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AutoInv", "AutoInv\AutoInv.csproj", "{FE13C0E7-5694-4526-AE2F-EFF56AB30411}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AutoInv2", "AutoInv2\AutoInv2.csproj", "{1A6E3381-36DC-43D2-B77D-8EF1EA7C02F4}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -12,6 +14,8 @@ Global
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
 		{FE13C0E7-5694-4526-AE2F-EFF56AB30411}.Debug|x64.ActiveCfg = Debug|x64
 		{FE13C0E7-5694-4526-AE2F-EFF56AB30411}.Debug|x64.Build.0 = Debug|x64
+		{1A6E3381-36DC-43D2-B77D-8EF1EA7C02F4}.Debug|x64.ActiveCfg = Debug|x64
+		{1A6E3381-36DC-43D2-B77D-8EF1EA7C02F4}.Debug|x64.Build.0 = Debug|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
