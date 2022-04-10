@@ -27,31 +27,37 @@ namespace IngameScript
             bool initialized = false;
             public bool Initialized => initialized;
 
-            public Dictionary<long, ManagedBlock> blocks = new Dictionary<long, ManagedBlock>();
+            public ManagedBlocks blocks = new ManagedBlocks();
             public List<IManagedInventory> sources = new List<IManagedInventory>();
             public List<IManagedInventory> targets = new List<IManagedInventory>();
-            public List<ManagedAssemblerInput> masterAssemblers = new List<ManagedAssemblerInput>();
-            public List<ManagedAssemblerInput> slaveAssemblers = new List<ManagedAssemblerInput>();
-            public List<IMyGasTank> oxygenTanks = new List<IMyGasTank>();
-            public List<IMyGasTank> hydrogenTanks = new List<IMyGasTank>();
-            public List<IMyBatteryBlock> batteryBlocks = new List<IMyBatteryBlock>();
-            public List<ManagedReactor> reactors = new List<ManagedReactor>();
+            public HashSet<long> masterAssemblers = new HashSet<long>();
+            public HashSet<long> slaveAssemblers = new HashSet<long>();
+            public HashSet<long> refineries = new HashSet<long>();
+            public HashSet<long> gasGenerators = new HashSet<long>();
+            public HashSet<long> oxygenTanks = new HashSet<long>();
+            public HashSet<long> hydrogenTanks = new HashSet<long>();
+            public HashSet<long> batteryBlocks = new HashSet<long>();
+            public HashSet<long> reactors = new HashSet<long>();
 
             public void Update(
                 List<IManagedInventory> sources,
                 List<IManagedInventory> targets,
-                List<ManagedAssemblerInput> masterAssemblers,
-                List<ManagedAssemblerInput> slaveAssemblers,
-                List<IMyGasTank> oxygenTanks,
-                List<IMyGasTank> hydrogenTanks,
-                List<IMyBatteryBlock> batteryBlocks,
-                List<ManagedReactor> reactors
+                HashSet<long> masterAssemblers,
+                HashSet<long> slaveAssemblers,
+                HashSet<long> refineries,
+                HashSet<long> gasGenerators,
+                HashSet<long> oxygenTanks,
+                HashSet<long> hydrogenTanks,
+                HashSet<long> batteryBlocks,
+                HashSet<long> reactors
             )
             {
                 Util.Swap(ref this.sources, ref sources);
                 Util.Swap(ref this.targets, ref targets);
                 Util.Swap(ref this.masterAssemblers, ref masterAssemblers);
                 Util.Swap(ref this.slaveAssemblers, ref slaveAssemblers);
+                Util.Swap(ref this.refineries, ref refineries);
+                Util.Swap(ref this.gasGenerators, ref gasGenerators);
                 Util.Swap(ref this.oxygenTanks, ref oxygenTanks);
                 Util.Swap(ref this.hydrogenTanks, ref hydrogenTanks);
                 Util.Swap(ref this.batteryBlocks, ref batteryBlocks);

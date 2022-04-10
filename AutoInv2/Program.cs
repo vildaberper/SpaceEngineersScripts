@@ -175,15 +175,17 @@ namespace IngameScript
             if (state.masterAssemblers.Count > 0)
             {
                 var isQueueEmpty = true;
-                foreach (var assembler in state.masterAssemblers.ToList())
+                foreach (var id in state.masterAssemblers.ToList())
                 {
                     yield return true;
+                    var assembler = state.blocks.Assembler(id);
                     assembler.CooperativeMode = false;
                     isQueueEmpty &= assembler.IsQueueEmpty;
                 }
-                foreach (var assembler in state.slaveAssemblers.ToList())
+                foreach (var id in state.slaveAssemblers.ToList())
                 {
                     yield return true;
+                    var assembler = state.blocks.Assembler(id);
                     assembler.CooperativeMode = true;
                     if (isQueueEmpty) assembler.ClearQueue();
                 }
@@ -192,85 +194,115 @@ namespace IngameScript
             log.Append($"Sources ({state.sources.Count}):\n");
             foreach (var source in state.sources.ToList())
             {
-                log.Append($"{source.GetType().Name.Substring(7)} ({source.Block.CustomName}){(source.Ready ? "" : "*")}\n");
+                log.Append($"{source.GetType().Name.Substring(7)} ({source.Block.Name}){(source.Ready ? "" : "*")}\n");
                 yield return true;
             }
             log.Append($"Targets ({state.targets.Count}):\n");
             foreach (var target in state.targets.ToList())
             {
-                log.Append($"{target.GetType().Name.Substring(7)} ({target.Block.CustomName}){(target.Ready ? "" : "*")}\n");
+                log.Append($"{target.GetType().Name.Substring(7)} ({target.Block.Name}){(target.Ready ? "" : "*")}\n");
                 yield return true;
             }
         }
 
         IEnumerator<bool> Scan(StringBuilder log)
         {
+            var blocks = state.blocks;
             var sources = new List<IManagedInventory>();
             var targets = new List<IManagedInventory>();
-            var masterAssemblers = new List<ManagedAssemblerInput>();
-            var slaveAssemblers = new List<ManagedAssemblerInput>();
-            var oxygenTanks = new List<IMyGasTank>();
-            var hydrogenTanks = new List<IMyGasTank>();
-            var batteryBlocks = new List<IMyBatteryBlock>();
-            var reactors = new List<ManagedReactor>();
+            var masterAssemblers = new HashSet<long>(state.masterAssemblers);
+            var slaveAssemblers = new HashSet<long>(state.slaveAssemblers);
+            var refineries = new HashSet<long>(state.refineries);
+            var gasGenerators = new HashSet<long>(state.gasGenerators);
+            var oxygenTanks = new HashSet<long>(state.oxygenTanks);
+            var hydrogenTanks = new HashSet<long>(state.hydrogenTanks);
+            var batteryBlocks = new HashSet<long>(state.batteryBlocks);
+            var reactors = new HashSet<long>(state.reactors);
+
+            Action<long> remove = (id) =>
+            {
+                blocks.Remove(id);
+                masterAssemblers.Remove(id);
+                slaveAssemblers.Remove(id);
+                refineries.Remove(id);
+                gasGenerators.Remove(id);
+                oxygenTanks.Remove(id);
+                hydrogenTanks.Remove(id);
+                batteryBlocks.Remove(id);
+                reactors.Remove(id);
+            };
+
+            foreach(var e in blocks.ToList())
+            {
+                yield return true;
+                if (e.Value.Closed || e.Value.Changed) remove(e.Key);
+            }
 
             foreach (var block in GridTerminalSystem.GetBlocks())
             {
                 yield return true;
+                var id = block.EntityId;
+                if (blocks.ContainsKey(id)) continue;
+
                 if (block is IMyAssembler)
                 {
-                    var assembler = (IMyAssembler)block;
-                    var input = new ManagedAssemblerInput(assembler);
-                    sources.Add(input);
-                    sources.Add(new ManagedOutput(assembler));
-                    if (block.IsSameConstructAs(Me)) (input.DefinedMaster ? masterAssemblers : slaveAssemblers).Add(input);
+                    var assembler = new ManagedAssembler((IMyAssembler)block);
+                    blocks.Add(id, assembler);
+                    //sources.Add(assembler.Input);
+                    //sources.Add(assembler.Output);
+                    if (block.IsSameConstructAs(Me)) (assembler.DefinedMaster ? masterAssemblers : slaveAssemblers).Add(id);
                     log.Append($"Assembler ({block.CustomName})\n");
                 }
                 else if (block is IMyRefinery)
                 {
-                    var refinery = (IMyRefinery)block;
-                    var input = new ManagedRefineryInput(refinery);
-                    sources.Add(input);
-                    targets.Add(input);
-                    sources.Add(new ManagedOutput(refinery));
+                    var refinery = new ManagedRefinery((IMyRefinery)block);
+                    blocks.Add(id, refinery);
+                    //sources.Add(refinery.Input);
+                    //targets.Add(refinery.Input);
+                    //sources.Add(refinery.Output);
+                    if (block.IsSameConstructAs(Me)) refineries.Add(id);
                     log.Append($"Refinery ({block.CustomName})\n");
                 }
                 else if (block is IMyGasGenerator)
                 {
-                    var gasGenerator = (IMyGasGenerator)block;
-                    var managed = new ManagedGasGenerator(gasGenerator);
-                    sources.Add(managed);
-                    targets.Add(managed);
+                    var gasGenerator = new ManagedGasGenerator((IMyGasGenerator)block);
+                    blocks.Add(id, gasGenerator);
+                    //sources.Add(gasGenerator.Inventory);
+                    //targets.Add(gasGenerator.Inventory);
+                    if (block.IsSameConstructAs(Me)) gasGenerators.Add(id);
                     log.Append($"GasGenerator ({block.CustomName})\n");
-                }
-                else if (block is IMyCargoContainer)
-                {
-                    log.Append($"CargoContainer ({block.CustomName})\n");
-                }
-                else if (block is IMyReactor)
-                {
-                    var reactor = (IMyReactor)block;
-                    var managed = new ManagedReactor(reactor);
-                    sources.Add(managed);
-                    targets.Add(managed);
-                    if (block.IsSameConstructAs(Me)) reactors.Add(managed);
-                    log.Append($"Reactor ({block.CustomName})\n");
                 }
                 else if (block is IMyGasTank)
                 {
-                    var gasTank = (IMyGasTank)block;
+                    var gasTank = new ManagedGasTank((IMyGasTank)block);
+                    blocks.Add(id, gasTank);
                     if (block.IsSameConstructAs(Me))
                     {
-                        if (gasTank.IsOxygen()) oxygenTanks.Add(gasTank);
-                        else if (gasTank.IsHydrogen()) hydrogenTanks.Add(gasTank);
+                        if (gasTank.IsOxygen) oxygenTanks.Add(id);
+                        else if (gasTank.IsHydrogen) hydrogenTanks.Add(id);
                     }
-                    log.Append($"GasTank '{(gasTank.IsOxygen() ? "Oxygen" : gasTank.IsHydrogen() ? "Hydrogen" : "Other")}' ({block.CustomName})\n");
+                    log.Append($"GasTank '{(gasTank.IsOxygen ? "Oxygen" : gasTank.IsHydrogen ? "Hydrogen" : "Other")}' ({block.CustomName})\n");
                 }
                 else if (block is IMyBatteryBlock)
                 {
-                    var batteryBlock = (IMyBatteryBlock)block;
-                    if (block.IsSameConstructAs(Me)) batteryBlocks.Add(batteryBlock);
+                    var batteryBlock = new ManagedBatteryBlock((IMyBatteryBlock)block);
+                    blocks.Add(id, batteryBlock);
+                    if (block.IsSameConstructAs(Me)) batteryBlocks.Add(id);
                     log.Append($"BatteryBlock ({block.CustomName})\n");
+                }
+                else if (block is IMyReactor)
+                {
+                    var reactor = new ManagedReactor((IMyReactor)block);
+                    blocks.Add(id, reactor);
+                    //sources.Add(reactor.Inventory);
+                    //targets.Add(reactor.Inventory);
+                    if (block.IsSameConstructAs(Me)) reactors.Add(id);
+                    log.Append($"Reactor ({block.CustomName})\n");
+                }
+                else if (block is IMyCargoContainer)
+                {
+                    var cargoContainer = (IMyCargoContainer)block;
+                    log.Append($"CargoContainer ({block.CustomName})\n");
                 }
                 else
                 {
@@ -282,6 +314,8 @@ namespace IngameScript
                 targets,
                 masterAssemblers,
                 slaveAssemblers,
+                refineries,
+                gasGenerators,
                 oxygenTanks,
                 hydrogenTanks,
                 batteryBlocks,
