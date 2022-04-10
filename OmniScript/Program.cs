@@ -69,7 +69,7 @@ namespace IngameScript
         {
             Runtime.UpdateFrequency = workUpdateFrequency | scanUpdateFrequency | logUpdateFrequency;
 
-            if (!Me.CustomName.EndsWith("(ai)")) Me.CustomName += " (ai)";
+            if (!Me.CustomName.EndsWith("(os)")) Me.CustomName += " (os)";
 
             if (logToSurface)
             {
@@ -109,7 +109,7 @@ namespace IngameScript
 
         public void Log()
         {
-            var title = $"AutoInv2 v{version} [{logAnim[++logAnimIndex % logAnim.Length]}]";
+            var title = $"OmniScript v{version} [{logAnim[++logAnimIndex % logAnim.Length]}]";
             var content = $"Scanner {scanner.Log}\nWorker {worker.Log}";
             var frame = $"{title}\n{content}";
             if (logToEcho) Echo(frame);
@@ -232,7 +232,7 @@ namespace IngameScript
                 reactors.Remove(id);
             };
 
-            foreach(var e in blocks.ToList())
+            foreach (var e in blocks.ToList())
             {
                 yield return true;
                 if (e.Value.Closed || e.Value.Changed) remove(e.Key);
