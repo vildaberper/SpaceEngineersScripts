@@ -34,8 +34,26 @@ namespace IngameScript
 
         const UpdateFrequency logUpdateFrequency = UpdateFrequency.Update10;
 
+        const int defaultPriority = 0;
+
+        const string defaultAssemblerFilter = "";
+        const string defaultRefineryFilter = "* p100 q1000";
+        const string defaultGasGeneratorFilter = "ice p100 q1000;bottle";
+        const string defaulReactorFilter = "* p100 q100";
+
+        const string configSectionKey = "os";
+        const string parseFilterPrefix = "(";
+        const string parseFilterSuffix = " os)";
+        const string parseFilterAll = "*";
+        static readonly char[] parseFilterSeparators = { '\n', ';' };
+        static readonly char[] parseFilterArgSeparators = { ' ' };
+
         const string version = "0.0.1";
         #endregion
+
+        const string myName = "(os)";
+
+        public static MyIni ini;
 
         readonly UpdateType scanUpdateType = scanUpdateFrequency.ToUpdateType();
         readonly UpdateType workUpdateType = workUpdateFrequency.ToUpdateType();
@@ -67,9 +85,11 @@ namespace IngameScript
 
         public Program()
         {
+            ini = new MyIni();
+
             Runtime.UpdateFrequency = workUpdateFrequency | scanUpdateFrequency | logUpdateFrequency;
 
-            if (!Me.CustomName.EndsWith("(os)")) Me.CustomName += " (os)";
+            if (!Me.CustomName.EndsWith(myName)) Me.CustomName += $" {myName}";
 
             if (logToSurface)
             {
@@ -120,56 +140,8 @@ namespace IngameScript
             }
         }
 
-        class MyItemTypeComparer : IComparer<MyItemType>
-        {
-            public int Compare(MyItemType x, MyItemType y)
-            {
-                var g = x.Group().CompareTo(y.Group());
-                return g != 0 ? g : x.Name().CompareTo(y.Name());
-            }
-        }
-        readonly MyItemTypeComparer myItemTypeComparer = new MyItemTypeComparer();
-
         IEnumerator<bool> Work(StringBuilder log)
         {
-            /*var itemSet = new HashSet<MyItemType>();
-
-            foreach (var block in GridTerminalSystem.GetBlocks())
-            {
-                // var blockType = block.DefinitionDisplayNameText;
-
-                for (int i = 0; i < block.InventoryCount; ++i)
-                {
-                    foreach (var item in block.GetInventory(i).GetItems())
-                    {
-                        var unused = !itemSet.Contains(item.Type) && itemSet.Add(item.Type);
-                    }
-                }
-                yield return true;
-            }
-
-            var itemList = itemSet.ToList();
-            itemList.Sort(myItemTypeComparer);
-
-            var groupSet = new HashSet<string>();
-
-            workLogBuilder.Append($"Found {itemList.Count} items:\n");
-            foreach (var item in itemList)
-            {
-                var unused = !groupSet.Contains(item.Group()) && groupSet.Add(item.Group());
-                workLogBuilder.Append($"{item.DisplayName()} ({item.Group()})\n");
-                yield return true;
-            }
-
-            var groupList = groupSet.ToList();
-            groupList.Sort();
-
-            workLogBuilder.Append($"Found {groupList.Count} groups:\n");
-            foreach(var group in groupList)
-            {
-                workLogBuilder.Append($"{group}\n");
-                yield return true;
-            }*/
             if (!state.Initialized) yield break;
 
             if (state.masterAssemblers.Count > 0)
@@ -194,13 +166,21 @@ namespace IngameScript
             log.Append($"Sources ({state.sources.Count}):\n");
             foreach (var source in state.sources.ToList())
             {
-                log.Append($"{source.GetType().Name.Substring(7)} ({source.Block.Name}){(source.Ready ? "" : "*")}\n");
+                log.Append($"{source.GetType().Name.SubStr(7)} ({source.Block.Name}){(source.Ready ? "" : "*")}\n");
                 yield return true;
             }
             log.Append($"Targets ({state.targets.Count}):\n");
             foreach (var target in state.targets.ToList())
             {
-                log.Append($"{target.GetType().Name.Substring(7)} ({target.Block.Name}){(target.Ready ? "" : "*")}\n");
+                log.Append($"{target.GetType().Name.SubStr(7)} ({target.Block.Name}){(target.Ready ? "" : "*")}\n");
+                foreach (var filter in target.Filters)
+                {
+                    log.Append($" * {filter.Types.Count} p{filter.Priority}{(filter.HasQuota ? $" q{filter.Quota}" : "")}\n");
+                    foreach (var type in filter.Types)
+                    {
+                        log.Append($"  - {type.DisplayName()} {type.Group()}\n");
+                    }
+                }
                 yield return true;
             }
         }
@@ -208,8 +188,8 @@ namespace IngameScript
         IEnumerator<bool> Scan(StringBuilder log)
         {
             var blocks = state.blocks;
-            var sources = new List<IManagedInventory>();
-            var targets = new List<IManagedInventory>();
+            var sources = new List<IManagedInventory>(state.sources);
+            var targets = new List<IManagedInventory>(state.targets);
             var masterAssemblers = new HashSet<long>(state.masterAssemblers);
             var slaveAssemblers = new HashSet<long>(state.slaveAssemblers);
             var refineries = new HashSet<long>(state.refineries);
@@ -218,10 +198,14 @@ namespace IngameScript
             var hydrogenTanks = new HashSet<long>(state.hydrogenTanks);
             var batteryBlocks = new HashSet<long>(state.batteryBlocks);
             var reactors = new HashSet<long>(state.reactors);
+            var shipConnectors = new HashSet<long>(state.shipConnectors);
 
             Action<long> remove = (id) =>
             {
                 blocks.Remove(id);
+                // Performance hit?
+                sources.RemoveAll(source => source.Block.Block.EntityId == id);
+                targets.RemoveAll(target => target.Block.Block.EntityId == id);
                 masterAssemblers.Remove(id);
                 slaveAssemblers.Remove(id);
                 refineries.Remove(id);
@@ -230,6 +214,7 @@ namespace IngameScript
                 hydrogenTanks.Remove(id);
                 batteryBlocks.Remove(id);
                 reactors.Remove(id);
+                shipConnectors.Remove(id);
             };
 
             foreach (var e in blocks.ToList())
@@ -248,56 +233,57 @@ namespace IngameScript
                 {
                     var assembler = new ManagedAssembler((IMyAssembler)block);
                     blocks.Add(id, assembler);
-                    //sources.Add(assembler.Input);
-                    //sources.Add(assembler.Output);
-                    if (block.IsSameConstructAs(Me)) (assembler.DefinedMaster ? masterAssemblers : slaveAssemblers).Add(id);
-                    log.Append($"Assembler ({block.CustomName})\n");
+                    sources.Add(assembler.Input);
+                    sources.Add(assembler.Output);
+                    (assembler.DefinedMaster ? masterAssemblers : slaveAssemblers).Add(id);
                 }
                 else if (block is IMyRefinery)
                 {
                     var refinery = new ManagedRefinery((IMyRefinery)block);
                     blocks.Add(id, refinery);
-                    //sources.Add(refinery.Input);
-                    //targets.Add(refinery.Input);
-                    //sources.Add(refinery.Output);
-                    if (block.IsSameConstructAs(Me)) refineries.Add(id);
-                    log.Append($"Refinery ({block.CustomName})\n");
+                    sources.Add(refinery.Input);
+                    targets.Add(refinery.Input);
+                    sources.Add(refinery.Output);
+                    refineries.Add(id);
                 }
                 else if (block is IMyGasGenerator)
                 {
                     var gasGenerator = new ManagedGasGenerator((IMyGasGenerator)block);
                     blocks.Add(id, gasGenerator);
-                    //sources.Add(gasGenerator.Inventory);
-                    //targets.Add(gasGenerator.Inventory);
-                    if (block.IsSameConstructAs(Me)) gasGenerators.Add(id);
-                    log.Append($"GasGenerator ({block.CustomName})\n");
+                    sources.Add(gasGenerator.Inventory);
+                    targets.Add(gasGenerator.Inventory);
+                    gasGenerators.Add(id);
                 }
                 else if (block is IMyGasTank)
                 {
                     var gasTank = new ManagedGasTank((IMyGasTank)block);
                     blocks.Add(id, gasTank);
-                    if (block.IsSameConstructAs(Me))
-                    {
-                        if (gasTank.IsOxygen) oxygenTanks.Add(id);
-                        else if (gasTank.IsHydrogen) hydrogenTanks.Add(id);
-                    }
-                    log.Append($"GasTank '{(gasTank.IsOxygen ? "Oxygen" : gasTank.IsHydrogen ? "Hydrogen" : "Other")}' ({block.CustomName})\n");
+                    sources.Add(gasTank.Inventory);
+                    targets.Add(gasTank.Inventory);
+                    if (gasTank.IsOxygen) oxygenTanks.Add(id);
+                    else if (gasTank.IsHydrogen) hydrogenTanks.Add(id);
                 }
                 else if (block is IMyBatteryBlock)
                 {
                     var batteryBlock = new ManagedBatteryBlock((IMyBatteryBlock)block);
                     blocks.Add(id, batteryBlock);
-                    if (block.IsSameConstructAs(Me)) batteryBlocks.Add(id);
-                    log.Append($"BatteryBlock ({block.CustomName})\n");
+                    batteryBlocks.Add(id);
                 }
                 else if (block is IMyReactor)
                 {
                     var reactor = new ManagedReactor((IMyReactor)block);
                     blocks.Add(id, reactor);
-                    //sources.Add(reactor.Inventory);
-                    //targets.Add(reactor.Inventory);
-                    if (block.IsSameConstructAs(Me)) reactors.Add(id);
-                    log.Append($"Reactor ({block.CustomName})\n");
+                    sources.Add(reactor.Inventory);
+                    targets.Add(reactor.Inventory);
+                    reactors.Add(id);
+                }
+                else if (block is IMyShipConnector)
+                {
+                    var shipConnector = new ManagedShipConnector((IMyShipConnector)block);
+                    blocks.Add(id, shipConnector);
+                    sources.Add(shipConnector.Inventory);
+                    targets.Add(shipConnector.Inventory);
+                    shipConnectors.Add(id);
                 }
                 else if (block is IMyCargoContainer)
                 {
@@ -319,7 +305,8 @@ namespace IngameScript
                 oxygenTanks,
                 hydrogenTanks,
                 batteryBlocks,
-                reactors
+                reactors,
+                shipConnectors
             );
         }
     }

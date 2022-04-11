@@ -23,6 +23,8 @@ namespace IngameScript
     static class Extensions
     {
         public static bool ContainsIgnoreCase(this string s, string value) => s.ToLower().Contains(value.ToLower());
+        public static string SubStr(this string s, int begin, int end) => s.Substring(begin, end - begin);
+        public static string SubStr(this string s, int begin = 0) => s.SubStr(begin, s.Length);
 
         static readonly List<IMyTerminalBlock> IMyGridTerminalSystem_GetBlocks_blocks = new List<IMyTerminalBlock>();
         public static List<IMyTerminalBlock> GetBlocks(this IMyGridTerminalSystem gts)
@@ -60,67 +62,16 @@ namespace IngameScript
             i.GetItems(IMyInventory_GetItems_items);
             return IMyInventory_GetItems_items;
         }
+        static readonly List<MyItemType> IMyInventory_GetAcceptedItems_itemTypes = new List<MyItemType>();
+        public static List<MyItemType> GetAcceptedItems(this IMyInventory i)
+        {
+            IMyInventory_GetAcceptedItems_itemTypes.Clear();
+            i.GetAcceptedItems(IMyInventory_GetAcceptedItems_itemTypes);
+            return IMyInventory_GetAcceptedItems_itemTypes;
+        }
 
-        public static string Name(this MyItemType it)
-        {
-            return it.SubtypeId;
-        }
-        static readonly Dictionary<string, string> MyItemType_DisplayName_cache = new Dictionary<string, string>();
-        static string MyItemType_DisplayName_cache_insert(string s)
-        {
-            var l = s.EndsWith("Item") ? s.Length - 4 : s.Length;
-            var sb = new StringBuilder(s[0].ToString());
-            for (int i = 1; i < l; ++i)
-            {
-                if (s[i] == 'G' && i + 8 < l && s.Substring(i, 8) == "Gun_Mag_")
-                {
-                    sb.Append(" Magazine");
-                    break;
-                }
-                if (
-                    (char.IsNumber(s[i]) && char.IsLetter(s[i - 1]) && (i < 2 || !char.IsNumber(s[i - 2]))) ||
-                    (char.IsUpper(s[i]) && char.IsLower(s[i - 1]))
-                ) sb.Append(' ');
-                sb.Append(s[i]);
-            }
-            var displayName = sb.ToString();
-            MyItemType_DisplayName_cache.Add(s, displayName);
-            return displayName;
-        }
-        public static string DisplayName(this MyItemType it)
-        {
-            string displayName;
-            MyItemType_DisplayName_cache.TryGetValue(it.SubtypeId, out displayName);
-            return displayName ?? MyItemType_DisplayName_cache_insert(it.SubtypeId);
-        }
-        static readonly Dictionary<string, string> MyItemType_Group_cache = new Dictionary<string, string>()
-        {
-            { "MyObjectBuilder_ConsumableItem", "Consumable" },
-            { "MyObjectBuilder_Datapad", "Other" },
-            { "MyObjectBuilder_GasContainerObject", "Bottle" },
-            { "MyObjectBuilder_OxygenContainerObject", "Bottle" },
-            { "MyObjectBuilder_Package", "Other" },
-            { "MyObjectBuilder_PhysicalObject", "Other" },
-        };
-        static string MyItemType_Group_cache_insert(MyItemType it)
-        {
-            var info = it.GetItemInfo();
-            var group =
-                info.IsAmmo ? "Ammo" :
-                info.IsComponent ? "Component" :
-                info.IsIngot ? "Ingot" :
-                info.IsOre ? "Ore" :
-                info.IsTool ? "Tool" :
-                it.TypeId.Substring(it.TypeId.LastIndexOf("_") + 1);
-            MyItemType_Group_cache.Add(it.TypeId, group);
-            return group;
-        }
-        public static string Group(this MyItemType it)
-        {
-            string group;
-            MyItemType_Group_cache.TryGetValue(it.TypeId, out group);
-            return group ?? MyItemType_Group_cache_insert(it);
-        }
+        public static string DisplayName(this MyItemType it) => Program.Items.Get(it).DisplayName;
+        public static string Group(this MyItemType it) => Program.Items.Get(it).Group;
 
         public static bool IsOxygen(this IMyGasTank gt) => gt.BlockDefinition.SubtypeId.Length == 0 || gt.BlockDefinition.SubtypeId.Contains("Oxygen");
         public static bool IsHydrogen(this IMyGasTank gt) => gt.BlockDefinition.SubtypeId.Contains("Hydrogen");

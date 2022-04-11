@@ -27,6 +27,8 @@ namespace IngameScript
             IMyTerminalBlock Block { get; }
             string Name { get; }
             string Data { get; }
+            string Error { get; }
+            bool HasError { get; }
             bool Closed { get; }
             bool Changed { get; }
         }
@@ -36,6 +38,7 @@ namespace IngameScript
             protected readonly TBlock block;
             protected readonly string name;
             protected readonly string data;
+            protected string error = "";
 
             protected ManagedBlock(TBlock block)
             {
@@ -47,6 +50,8 @@ namespace IngameScript
             public IMyTerminalBlock Block => block;
             public string Name => name;
             public string Data => data;
+            public string Error => error;
+            public bool HasError => error.Length > 0;
             public bool Closed => block.Closed;
             public virtual bool Changed { get { return !block.CustomName.Equals(name) || !block.CustomData.Equals(data); } }
         }
@@ -67,6 +72,7 @@ namespace IngameScript
         {
             IManagedBlock Block { get; }
             IMyInventory Inventory { get; }
+            Filters Filters { get; }
             bool Ready { get; }
         }
 
@@ -74,27 +80,50 @@ namespace IngameScript
         {
             protected readonly TBlock block;
             protected readonly IMyInventory inventory;
+            protected readonly Filters filters;
 
-            public ManagedInventory(TBlock block, IMyInventory inventory)
+            public ManagedInventory(TBlock block, IMyInventory inventory, Filters filters)
             {
                 this.block = block;
                 this.inventory = inventory;
+                this.filters = filters;
             }
 
             public IManagedBlock Block => block;
             public IMyInventory Inventory => inventory;
+            public Filters Filters => filters;
             public virtual bool Ready => true;
         }
         public class ManagedInventory : ManagedInventory<IManagedBlock>
         {
-            public ManagedInventory(IManagedBlock block, IMyInventory inventory) : base(block, inventory) { }
+            public ManagedInventory(IManagedBlock block, IMyInventory inventory, Filters filters) : base(block, inventory, filters) { }
         }
 
-        public abstract class ManagedInventoryBlock<TBlock> : ManagedBlock<TBlock> where TBlock : IMyTerminalBlock
+        public abstract class ManagedFilteredBlock<TBlock> : ManagedBlock<TBlock> where TBlock : IMyTerminalBlock
+        {
+            readonly Filters filters;
+
+            protected ManagedFilteredBlock(TBlock block, string defaultFilter) : base(block)
+            {
+                try
+                {
+                    filters = Filters.Parse(block.GetInventory(0).GetAcceptedItems(), name, data, defaultFilter);
+                }
+                catch (FilterException e)
+                {
+                    filters = Filters.None;
+                    error = e.Message;
+                }
+            }
+
+            public Filters Filters => filters;
+        }
+
+        public abstract class ManagedInventoryBlock<TBlock> : ManagedFilteredBlock<TBlock> where TBlock : IMyTerminalBlock
         {
             protected IManagedInventory inventory;
 
-            protected ManagedInventoryBlock(TBlock block) : base(block) { }
+            protected ManagedInventoryBlock(TBlock block, string defaultFilter = "") : base(block, defaultFilter) { }
 
             public IManagedInventory Inventory
             {
@@ -103,12 +132,12 @@ namespace IngameScript
             }
         }
 
-        public abstract class ManagedProductionBlock<TBlock> : ManagedBlock<TBlock> where TBlock : IMyProductionBlock
+        public abstract class ManagedProductionBlock<TBlock> : ManagedFilteredBlock<TBlock> where TBlock : IMyProductionBlock
         {
             protected IManagedInventory input;
             protected IManagedInventory output;
 
-            protected ManagedProductionBlock(TBlock block) : base(block) { }
+            protected ManagedProductionBlock(TBlock block, string defaultFilter) : base(block, defaultFilter) { }
 
             public IManagedInventory Input
             {
@@ -124,17 +153,17 @@ namespace IngameScript
 
         public class ManagedAssemblerInputInventory : ManagedInventory<ManagedAssembler>
         {
-            public ManagedAssemblerInputInventory(ManagedAssembler block) : base(block, block.Input.Inventory) { }
+            public ManagedAssemblerInputInventory(ManagedAssembler block, Filters filters) : base(block, ((IMyAssembler)block.Block).InputInventory, filters) { }
 
             public override bool Ready => block.IsQueueEmpty;
         }
         public class ManagedAssembler : ManagedProductionBlock<IMyAssembler>
         {
-            public ManagedAssembler(IMyAssembler block) : base(block)
+            public ManagedAssembler(IMyAssembler block) : base(block, defaultAssemblerFilter)
             {
                 block.UseConveyorSystem = true;
-                Input = new ManagedAssemblerInputInventory(this);
-                Output = new ManagedInventory(this, block.OutputInventory);
+                Input = new ManagedAssemblerInputInventory(this, Filters);
+                Output = new ManagedInventory(this, block.OutputInventory, Filters.None);
             }
 
             public bool DefinedMaster => name.ContainsIgnoreCase("master");
@@ -149,36 +178,39 @@ namespace IngameScript
 
         public class ManagedRefinery : ManagedProductionBlock<IMyRefinery>
         {
-            public ManagedRefinery(IMyRefinery block) : base(block)
+            public ManagedRefinery(IMyRefinery block) : base(block, defaultRefineryFilter)
             {
                 block.UseConveyorSystem = false;
-                Input = new ManagedInventory(this, block.InputInventory);
-                Output = new ManagedInventory(this, block.OutputInventory);
+                Input = new ManagedInventory(this, block.InputInventory, Filters);
+                Output = new ManagedInventory(this, block.OutputInventory, Filters.None);
             }
         }
 
         public class ManagedGasGenerator : ManagedInventoryBlock<IMyGasGenerator>
         {
-            public ManagedGasGenerator(IMyGasGenerator block) : base(block)
+            public ManagedGasGenerator(IMyGasGenerator block) : base(block, defaultGasGeneratorFilter)
             {
                 block.UseConveyorSystem = false;
                 block.AutoRefill = true;
-                Inventory = new ManagedInventory(this, block.GetInventory());
+                Inventory = new ManagedInventory(this, block.GetInventory(), Filters);
             }
         }
 
         public class ManagedReactor : ManagedInventoryBlock<IMyReactor>
         {
-            public ManagedReactor(IMyReactor block) : base(block)
+            public ManagedReactor(IMyReactor block) : base(block, defaulReactorFilter)
             {
                 block.UseConveyorSystem = false;
-                Inventory = new ManagedInventory(this, block.GetInventory());
+                Inventory = new ManagedInventory(this, block.GetInventory(), Filters);
             }
         }
 
-        public class ManagedGasTank : ManagedBlock<IMyGasTank>
+        public class ManagedGasTank : ManagedInventoryBlock<IMyGasTank>
         {
-            public ManagedGasTank(IMyGasTank block) : base(block) { }
+            public ManagedGasTank(IMyGasTank block) : base(block)
+            {
+                Inventory = new ManagedInventory(this, block.GetInventory(), Filters);
+            }
 
             public bool IsOxygen => block.IsOxygen();
             public bool IsHydrogen => block.IsHydrogen();
@@ -187,6 +219,17 @@ namespace IngameScript
         public class ManagedBatteryBlock : ManagedBlock<IMyBatteryBlock>
         {
             public ManagedBatteryBlock(IMyBatteryBlock block) : base(block) { }
+        }
+
+        public class ManagedShipConnector : ManagedInventoryBlock<IMyShipConnector>
+        {
+            public ManagedShipConnector(IMyShipConnector block) : base(block)
+            {
+                Inventory = new ManagedInventory(this, block.GetInventory(), Filters);
+            }
+
+            public bool IsConnected => block.Status == MyShipConnectorStatus.Connected;
+            public IMyCubeGrid ConnectedCubeGrid => block.OtherConnector.CubeGrid;
         }
     }
 }

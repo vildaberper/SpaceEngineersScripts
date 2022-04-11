@@ -38,6 +38,7 @@ namespace IngameScript
             public HashSet<long> hydrogenTanks = new HashSet<long>();
             public HashSet<long> batteryBlocks = new HashSet<long>();
             public HashSet<long> reactors = new HashSet<long>();
+            public HashSet<long> shipConnectors = new HashSet<long>();
 
             public void Update(
                 List<IManagedInventory> sources,
@@ -49,7 +50,8 @@ namespace IngameScript
                 HashSet<long> oxygenTanks,
                 HashSet<long> hydrogenTanks,
                 HashSet<long> batteryBlocks,
-                HashSet<long> reactors
+                HashSet<long> reactors,
+                HashSet<long> shipConnectors
             )
             {
                 Util.Swap(ref this.sources, ref sources);
@@ -62,6 +64,7 @@ namespace IngameScript
                 Util.Swap(ref this.hydrogenTanks, ref hydrogenTanks);
                 Util.Swap(ref this.batteryBlocks, ref batteryBlocks);
                 Util.Swap(ref this.reactors, ref reactors);
+                Util.Swap(ref this.shipConnectors, ref shipConnectors);
                 initialized = true;
             }
         }

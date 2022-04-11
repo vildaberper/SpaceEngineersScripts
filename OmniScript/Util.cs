@@ -30,6 +30,22 @@ namespace IngameScript
                 a = b;
                 b = c;
             }
+
+            public static bool StringSection(string value, string prefix, string suffix, out string result)
+            {
+                var end = value.LastIndexOf(suffix);
+                if (end < 0) goto Fail;
+
+                var begin = value.LastIndexOf(prefix, end - prefix.Length);
+                if (begin < 0) goto Fail;
+
+                result = value.SubStr(begin + prefix.Length, end);
+                return true;
+
+            Fail:
+                result = null;
+                return false;
+            }
         }
     }
 }
