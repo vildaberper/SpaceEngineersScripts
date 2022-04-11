@@ -30,7 +30,7 @@ namespace IngameScript
         const int workTargetInstructionCount = 1000;
 
         const UpdateFrequency scanUpdateFrequency = UpdateFrequency.Update100;
-        const int scanTargetInstructionCount = 100;
+        const int scanTargetInstructionCount = 1000;
 
         const UpdateFrequency logUpdateFrequency = UpdateFrequency.Update10;
 
@@ -38,22 +38,32 @@ namespace IngameScript
 
         const string defaultAssemblerFilter = "";
         const string defaultRefineryFilter = "* p100 q1000";
-        const string defaultGasGeneratorFilter = "ice p100 q1000;bottle";
+        const string defaultGasGeneratorFilter = "ice p100";
         const string defaulReactorFilter = "* p100 q100";
 
         const string configSectionKey = "os";
         const string parseFilterPrefix = "(";
         const string parseFilterSuffix = " os)";
         const string parseFilterAll = "*";
-        static readonly char[] parseFilterSeparators = { '\n', ';' };
-        static readonly char[] parseFilterArgSeparators = { ' ' };
+        const string parseFilterSeparators = "\n;";
+        const string parseFilterArgSeparators = " ";
 
         const string version = "0.0.1";
         #endregion
 
+        public static Program Instance { get; protected set; }
+
         const string myName = "(os)";
 
-        public static MyIni ini;
+        public readonly char[] _parseFilterSeparators = parseFilterSeparators.ToCharArray();
+        public readonly char[] _parseFilterArgSeparators = parseFilterArgSeparators.ToCharArray();
+
+        public readonly MyIni ini = new MyIni();
+        public readonly ItemTargetComparer itemTargetComparer = new ItemTargetComparer();
+        public readonly List<IMyTerminalBlock> IMyGridTerminalSystem_GetBlocks_blocks = new List<IMyTerminalBlock>();
+        public readonly List<MyItemType> IMyInventory_GetAcceptedItems_itemTypes = new List<MyItemType>();
+        public readonly List<MyInventoryItem> IMyInventory_GetItems_items = new List<MyInventoryItem>();
+        public readonly Dictionary<MyItemType, Item> itemTypes = new Dictionary<MyItemType, Item>();
 
         readonly UpdateType scanUpdateType = scanUpdateFrequency.ToUpdateType();
         readonly UpdateType workUpdateType = workUpdateFrequency.ToUpdateType();
@@ -85,7 +95,7 @@ namespace IngameScript
 
         public Program()
         {
-            ini = new MyIni();
+            Instance = this;
 
             Runtime.UpdateFrequency = workUpdateFrequency | scanUpdateFrequency | logUpdateFrequency;
 
@@ -129,20 +139,30 @@ namespace IngameScript
 
         public void Log()
         {
-            var title = $"OmniScript v{version} [{logAnim[++logAnimIndex % logAnim.Length]}]";
+            var header = $"OmniScript v{version} [{logAnim[++logAnimIndex % logAnim.Length]}]";
             var content = $"Scanner {scanner.Log}\nWorker {worker.Log}";
-            var frame = $"{title}\n{content}";
+            var frame = $"{header}\n\n{content}";
             if (logToEcho) Echo(frame);
             if (logToSurface)
             {
                 Me.GetSurface(0).WriteText(content);
-                Me.GetSurface(1).WriteText(title);
+                Me.GetSurface(1).WriteText(header);
             }
         }
 
         IEnumerator<bool> Work(StringBuilder log)
         {
             if (!state.Initialized) yield break;
+
+            var errorBlocks = state.blocks.Where(e => e.Value.HasError).ToList();
+            if (errorBlocks.Count > 0)
+            {
+                log.Append($"Errors ({errorBlocks.Count}):\n");
+                foreach (var e in errorBlocks)
+                {
+                    log.Append($" - {e.Value.Name}: {e.Value.Error}\n");
+                }
+            }
 
             if (state.masterAssemblers.Count > 0)
             {
@@ -163,14 +183,52 @@ namespace IngameScript
                 }
             }
 
+            var targets = state.itemTargets;
+            foreach (var target in targets) target.Value.Clear();
+
+            Action<MyItemType, IManagedInventory, Filter> add = (type, inventory, filter) =>
+            {
+                List<ItemTarget> itemTargets;
+                if (!targets.TryGetValue(type, out itemTargets)) targets.Add(type, itemTargets = new List<ItemTarget>());
+
+                itemTargets.Add(new ItemTarget(inventory, filter));
+            };
+
+            foreach (var target in state.targets.ToList())
+            {
+                yield return true;
+                foreach (var filter in target.Filters)
+                {
+                    foreach (var type in filter.Types)
+                    {
+                        add(type, target, filter);
+                    }
+                }
+            }
+
+            foreach (var itemTargets in targets.Values)
+            {
+                yield return true;
+                itemTargets.Sort(itemTargetComparer);
+            }
+
             log.Append($"Sources ({state.sources.Count}):\n");
             foreach (var source in state.sources.ToList())
             {
-                log.Append($"{source.GetType().Name.SubStr(7)} ({source.Block.Name}){(source.Ready ? "" : "*")}\n");
                 yield return true;
+                log.Append($" - {source.Block.Name}{(source.Ready ? "" : "*")}\n");
             }
             log.Append($"Targets ({state.targets.Count}):\n");
-            foreach (var target in state.targets.ToList())
+            foreach (var e in targets)
+            {
+                yield return true;
+                log.Append($" - {e.Key.DisplayName()}:\n");
+                foreach (var itemTarget in e.Value)
+                {
+                    log.Append($"   - p{itemTarget.Priority}{(itemTarget.HasQuota ? $" q{itemTarget.Quota}" : "")} {itemTarget.Inventory.Block.Name}\n");
+                }
+            }
+            /*foreach (var target in state.targets.ToList())
             {
                 log.Append($"{target.GetType().Name.SubStr(7)} ({target.Block.Name}){(target.Ready ? "" : "*")}\n");
                 foreach (var filter in target.Filters)
@@ -182,12 +240,14 @@ namespace IngameScript
                     }
                 }
                 yield return true;
-            }
+            }*/
         }
 
         IEnumerator<bool> Scan(StringBuilder log)
         {
             var blocks = state.blocks;
+            var scanned = state.scanned;
+
             var sources = new List<IManagedInventory>(state.sources);
             var targets = new List<IManagedInventory>(state.targets);
             var masterAssemblers = new HashSet<long>(state.masterAssemblers);
@@ -203,6 +263,7 @@ namespace IngameScript
             Action<long> remove = (id) =>
             {
                 blocks.Remove(id);
+                scanned.Remove(id);
                 // Performance hit?
                 sources.RemoveAll(source => source.Block.Block.EntityId == id);
                 targets.RemoveAll(target => target.Block.Block.EntityId == id);
@@ -227,7 +288,8 @@ namespace IngameScript
             {
                 yield return true;
                 var id = block.EntityId;
-                if (blocks.ContainsKey(id)) continue;
+                if (scanned.Contains(id)) continue;
+                scanned.Add(id);
 
                 if (block is IMyAssembler)
                 {
@@ -284,6 +346,12 @@ namespace IngameScript
                     sources.Add(shipConnector.Inventory);
                     targets.Add(shipConnector.Inventory);
                     shipConnectors.Add(id);
+                }
+                else if (block is IMyShipWelder)
+                {
+                    var shipWelder = new ManagedShipWelder((IMyShipWelder)block);
+                    blocks.Add(id, shipWelder);
+                    sources.Add(shipWelder.Inventory);
                 }
                 else if (block is IMyCargoContainer)
                 {

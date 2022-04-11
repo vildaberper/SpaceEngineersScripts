@@ -26,26 +26,15 @@ namespace IngameScript
         public static string SubStr(this string s, int begin, int end) => s.Substring(begin, end - begin);
         public static string SubStr(this string s, int begin = 0) => s.SubStr(begin, s.Length);
 
-        static readonly List<IMyTerminalBlock> IMyGridTerminalSystem_GetBlocks_blocks = new List<IMyTerminalBlock>();
         public static List<IMyTerminalBlock> GetBlocks(this IMyGridTerminalSystem gts)
         {
-            IMyGridTerminalSystem_GetBlocks_blocks.Clear();
-            gts.GetBlocksOfType<IMyTerminalBlock>(IMyGridTerminalSystem_GetBlocks_blocks);
-            return IMyGridTerminalSystem_GetBlocks_blocks;
+            Program.Instance.IMyGridTerminalSystem_GetBlocks_blocks.Clear();
+            gts.GetBlocksOfType<IMyTerminalBlock>(Program.Instance.IMyGridTerminalSystem_GetBlocks_blocks);
+            return Program.Instance.IMyGridTerminalSystem_GetBlocks_blocks;
         }
 
-        public static MyFixedPoint FreeVolume(this IMyInventory i)
-        {
-            return i.MaxVolume - i.CurrentVolume;
-        }
-        public static bool CanItemsBeAdded(this IMyInventory i, MyItemType type)
-        {
-            return i.CanItemsBeAdded(MyFixedPoint.SmallestPossibleValue, type);
-        }
-        public static MyFixedPoint FitItems(this IMyInventory i, MyItemType type)
-        {
-            return i.CanItemsBeAdded(type) ? MyFixedPoint.MultiplySafe(i.FreeVolume(), 1 / type.GetItemInfo().Volume) : MyFixedPoint.Zero;
-        }
+        public static MyFixedPoint FreeVolume(this IMyInventory i) => i.MaxVolume - i.CurrentVolume;
+        public static MyFixedPoint FitItems(this IMyInventory i, MyItemType type) => MyFixedPoint.MultiplySafe(i.FreeVolume(), 1 / type.GetItemInfo().Volume);
         public static MyFixedPoint TransferItemToSafe(this IMyInventory i, IMyInventory dstInventory, MyInventoryItem item, MyFixedPoint amount)
         {
             MyFixedPoint safeAmount = MyFixedPoint.Min(dstInventory.FitItems(item.Type), amount);
@@ -55,19 +44,17 @@ namespace IngameScript
         {
             return sourceInventory.TransferItemToSafe(i, item, amount);
         }
-        static readonly List<MyInventoryItem> IMyInventory_GetItems_items = new List<MyInventoryItem>();
         public static List<MyInventoryItem> GetItems(this IMyInventory i)
         {
-            IMyInventory_GetItems_items.Clear();
-            i.GetItems(IMyInventory_GetItems_items);
-            return IMyInventory_GetItems_items;
+            Program.Instance.IMyInventory_GetItems_items.Clear();
+            i.GetItems(Program.Instance.IMyInventory_GetItems_items);
+            return Program.Instance.IMyInventory_GetItems_items;
         }
-        static readonly List<MyItemType> IMyInventory_GetAcceptedItems_itemTypes = new List<MyItemType>();
         public static List<MyItemType> GetAcceptedItems(this IMyInventory i)
         {
-            IMyInventory_GetAcceptedItems_itemTypes.Clear();
-            i.GetAcceptedItems(IMyInventory_GetAcceptedItems_itemTypes);
-            return IMyInventory_GetAcceptedItems_itemTypes;
+            Program.Instance.IMyInventory_GetAcceptedItems_itemTypes.Clear();
+            i.GetAcceptedItems(Program.Instance.IMyInventory_GetAcceptedItems_itemTypes);
+            return Program.Instance.IMyInventory_GetAcceptedItems_itemTypes;
         }
 
         public static string DisplayName(this MyItemType it) => Program.Items.Get(it).DisplayName;

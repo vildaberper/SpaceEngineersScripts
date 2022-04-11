@@ -29,15 +29,17 @@ namespace IngameScript
             IEnumerator<bool> task = null;
             bool? current = null;
             readonly StringBuilder logBuilder = new StringBuilder();
-            string log = "pending...";
+            string log = "pending...\n";
             int cycleCountInProgress, cycleCount = -1;
             int instructionCountInProgress, instructionCount = -1;
             int totalRuns = 0;
+            int maxInstructionCount = -1;
 
             public string Log => log;
             public int CycleCount => cycleCount;
             public int InstructionCount => instructionCount;
             public int TotalRuns => totalRuns;
+            public int MaxInstructionCount => maxInstructionCount;
 
             public Worker(IMyGridProgramRuntimeInfo runtime, Func<StringBuilder, IEnumerator<bool>> taskFn)
             {
@@ -65,7 +67,9 @@ namespace IngameScript
                     if (runtime.CurrentInstructionCount >= targetInstructionCount) break;
                 }
                 ++cycleCountInProgress;
-                instructionCountInProgress += runtime.CurrentInstructionCount - startInstructionCount;
+                var cycleInstructionCount = runtime.CurrentInstructionCount - startInstructionCount;
+                if (cycleInstructionCount > maxInstructionCount) maxInstructionCount = cycleInstructionCount;
+                instructionCountInProgress += cycleInstructionCount;
 
                 if (!hasNext)
                 {
@@ -75,7 +79,7 @@ namespace IngameScript
                     {
                         cycleCount = cycleCountInProgress;
                         instructionCount = instructionCountInProgress;
-                        log = $"done ({instructionCount}/{cycleCount}) [{++totalRuns}]{(logBuilder.Length > 0 ? ":" : ".")}\n{logBuilder}";
+                        log = $"({maxInstructionCount}/{instructionCount}/{cycleCount}) [{++totalRuns}]{(logBuilder.Length > 0 ? ":" : ".")}\n{logBuilder}";
                     }
                 }
             }

@@ -24,7 +24,7 @@ namespace IngameScript
     {
         public class FilterException : Exception
         {
-            public FilterException(string filterString, string blockName) : base($"Failed to parse filter '{filterString}' for block with name '{blockName}'") { }
+            public FilterException(string filterString) : base($"Failed to parse filter '{filterString}'") { }
         }
 
         public class Filter
@@ -47,7 +47,7 @@ namespace IngameScript
 
             public static bool TryParse(List<MyItemType> from, string s, out Filter result)
             {
-                var args = s.ToLower().Split(parseFilterArgSeparators, StringSplitOptions.RemoveEmptyEntries);
+                var args = s.ToLower().Split(Instance._parseFilterArgSeparators, StringSplitOptions.RemoveEmptyEntries);
 
                 int priority = 0, quota = 0;
                 bool hasPriority = false, hasQuota = false;
@@ -76,25 +76,26 @@ namespace IngameScript
             public Filters() : base() { }
 
             /// <exception cref="FilterException"></exception>
-            public static Filters Parse(List<MyItemType> from, string name, string data, string defaultFilter = "")
+            public static Filters Parse(IMyInventory inventory, string name, string data, string defaultFilter = "")
             {
                 var filterStrings = new List<string>();
 
                 MyIniParseResult result;
                 string fromDataString;
-                if (ini.TryParse(data, out result) && ini.Get(configSectionKey, "filter").TryGetString(out fromDataString)) filterStrings.AddArray(fromDataString.Split(parseFilterSeparators));
+                if (Instance.ini.TryParse(data, out result) && Instance.ini.Get(configSectionKey, "filter").TryGetString(out fromDataString)) filterStrings.AddArray(fromDataString.Split(Instance._parseFilterSeparators));
 
                 string fromNameString;
-                if (Util.StringSection(name, parseFilterPrefix, parseFilterSuffix, out fromNameString)) filterStrings.AddArray(fromNameString.Split(parseFilterSeparators));
+                if (Util.StringSection(name, parseFilterPrefix, parseFilterSuffix, out fromNameString)) filterStrings.AddArray(fromNameString.Split(Instance._parseFilterSeparators));
 
-                if (filterStrings.Count == 0 && defaultFilter.Length > 0) filterStrings.AddArray(defaultFilter.Split(parseFilterSeparators));
+                if (filterStrings.Count == 0 && defaultFilter.Length > 0) filterStrings.AddArray(defaultFilter.Split(Instance._parseFilterSeparators));
 
+                var from = inventory.GetAcceptedItems();
                 var filters = new Filters();
                 foreach (string filterString in filterStrings)
                 {
                     Filter filter;
                     if (Filter.TryParse(from, filterString, out filter)) filters.Add(filter);
-                    else throw new FilterException(filterString, name);
+                    else throw new FilterException(filterString);
                 }
 
                 return filters;

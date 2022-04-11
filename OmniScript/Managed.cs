@@ -107,7 +107,7 @@ namespace IngameScript
             {
                 try
                 {
-                    filters = Filters.Parse(block.GetInventory(0).GetAcceptedItems(), name, data, defaultFilter);
+                    filters = Filters.Parse(block.GetInventory(0), name, data, defaultFilter);
                 }
                 catch (FilterException e)
                 {
@@ -230,6 +230,23 @@ namespace IngameScript
 
             public bool IsConnected => block.Status == MyShipConnectorStatus.Connected;
             public IMyCubeGrid ConnectedCubeGrid => block.OtherConnector.CubeGrid;
+        }
+
+        public class ManagedShipWelderInventory : ManagedInventory<ManagedShipWelder>
+        {
+            public ManagedShipWelderInventory(ManagedShipWelder block, Filters filters) : base(block, ((IMyShipWelder)block.Block).GetInventory(), filters) { }
+
+            public override bool Ready => !block.IsActivated;
+        }
+        public class ManagedShipWelder : ManagedInventoryBlock<IMyShipWelder>
+        {
+            public ManagedShipWelder(IMyShipWelder block) : base(block)
+            {
+                block.UseConveyorSystem = true;
+                Inventory = new ManagedShipWelderInventory(this, Filters);
+            }
+
+            public bool IsActivated => block.IsActivated;
         }
     }
 }

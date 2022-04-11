@@ -22,21 +22,9 @@ namespace IngameScript
 {
     partial class Program
     {
-        public class MyItemTypeComparer : IComparer<MyItemType>
-        {
-            public int Compare(MyItemType x, MyItemType y)
-            {
-                var g = x.Group().CompareTo(y.Group());
-                return g != 0 ? g : x.DisplayName().CompareTo(y.DisplayName());
-            }
-        }
-
-        // readonly MyItemTypeComparer myItemTypeComparer = new MyItemTypeComparer();
-
         public class Item
         {
             readonly string displayName, group, matchName, matchGroup;
-            readonly bool isOreWithIngot;
 
             public Item(MyItemType it)
             {
@@ -44,7 +32,6 @@ namespace IngameScript
                 group = MakeGroup(it);
                 matchName = displayName.Replace(" ", "").ToLower();
                 matchGroup = group.Replace(" ", "").ToLower();
-                isOreWithIngot = matchGroup == "ore" && matchName != "ice";
             }
 
             public string DisplayName => displayName;
@@ -57,7 +44,7 @@ namespace IngameScript
                 var i = s.IndexOf('/');
                 return i >= 0
                     ? matchGroup.StartsWith(s.SubStr(0, i)) && matchName.StartsWith(s.SubStr(i + 1))
-                    : !isOreWithIngot && matchName.StartsWith(s);
+                    : matchName.StartsWith(s);
             }
 
             private static string MakeDisplayName(MyItemType it)
@@ -116,12 +103,11 @@ namespace IngameScript
 
         public static class Items
         {
-            private static readonly Dictionary<MyItemType, Item> itemTypes = new Dictionary<MyItemType, Item>();
 
             public static Item Get(MyItemType it)
             {
                 Item item;
-                if (!itemTypes.TryGetValue(it, out item)) itemTypes.Add(it, item = new Item(it));
+                if (!Instance.itemTypes.TryGetValue(it, out item)) Instance.itemTypes.Add(it, item = new Item(it));
                 return item;
             }
 
