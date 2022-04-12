@@ -81,7 +81,7 @@ namespace IngameScript
                     {
                         cycleCount = cycleCountInProgress;
                         instructionCount = instructionCountInProgress;
-                        log = $"({maxInstructionCount}/{instructionCount}/{cycleCount}) [{++totalRuns}]{(logBuilder.Length > 0 ? ":" : ".")}\n{logBuilder}";
+                        log = $"({maxInstructionCount}/{instructionCount}/{cycleCount}) [{++totalRuns}]{(logBuilder.Length > 0 ? ":" : "")}\n{logBuilder}";
                     }
                     else
                     {

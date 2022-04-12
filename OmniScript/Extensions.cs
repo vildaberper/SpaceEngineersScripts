@@ -50,6 +50,21 @@ namespace IngameScript
             i.GetItems(Program.Instance.IMyInventory_GetItems_items);
             return Program.Instance.IMyInventory_GetItems_items;
         }
+        public static void SumItems(this IMyInventory i, Dictionary<MyItemType, MyFixedPoint> dict)
+        {
+            foreach(var item in i.GetItems())
+            {
+                MyFixedPoint amount;
+                if(!dict.TryGetValue(item.Type, out amount)) amount = MyFixedPoint.Zero;
+                dict[item.Type] = amount + item.Amount;
+            }
+        }
+        public static Dictionary<MyItemType, MyFixedPoint> SumItems(this IMyInventory i)
+        {
+            Program.Instance.IMyInventory_SumItems_items.Clear();
+            i.SumItems(Program.Instance.IMyInventory_SumItems_items);
+            return Program.Instance.IMyInventory_SumItems_items;
+        }
         public static List<MyItemType> GetAcceptedItems(this IMyInventory i)
         {
             Program.Instance.IMyInventory_GetAcceptedItems_itemTypes.Clear();

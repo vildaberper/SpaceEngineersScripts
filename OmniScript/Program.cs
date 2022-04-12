@@ -69,7 +69,7 @@ namespace IngameScript
 
         readonly bool logToEcho = true;
         readonly bool logToSurface = false;
-        readonly bool debugMode = true;
+        readonly bool debugMode = false;
 
         const UpdateFrequency manageUpdateFrequency = UpdateFrequency.Update100;
         const int manageTargetInstructionCount = 1000;
@@ -109,6 +109,7 @@ namespace IngameScript
         public readonly List<IMyTerminalBlock> IMyGridTerminalSystem_GetBlocks_blocks = new List<IMyTerminalBlock>();
         public readonly List<MyItemType> IMyInventory_GetAcceptedItems_itemTypes = new List<MyItemType>();
         public readonly List<MyInventoryItem> IMyInventory_GetItems_items = new List<MyInventoryItem>();
+        public readonly Dictionary<MyItemType, MyFixedPoint> IMyInventory_SumItems_items = new Dictionary<MyItemType, MyFixedPoint>();
 
         readonly UpdateType manageUpdateType = manageUpdateFrequency.ToUpdateType();
         readonly UpdateType transferUpdateType = transferUpdateFrequency.ToUpdateType();
@@ -191,7 +192,7 @@ namespace IngameScript
             if (!logToEcho && !logToSurface) return;
 
             var header = $"OmniScript v{version} [{logAnim[++logAnimIndex % logAnim.Length]}]";
-            var content = $"Manager {manager.Log}\nScanner {scanner.Log}\nTransferrer  {transferrer.Log}";
+            var content = $"Manager {manager.Log}Scanner {scanner.Log}Transferrer {transferrer.Log}";
             var frame = $"{header}\n\n{content}";
             if (logToEcho) Echo(frame);
             if (logToSurface)

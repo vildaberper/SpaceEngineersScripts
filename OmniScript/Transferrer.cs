@@ -39,11 +39,11 @@ namespace IngameScript
 
                 foreach (var target in state.targets.ToList())
                 {
-                    yield return true;
                     foreach (var filter in target.Filters)
                     {
                         foreach (var type in filter.Types)
                         {
+                            yield return true;
                             AddItemTarget(type, target, filter);
                         }
                     }
@@ -53,6 +53,23 @@ namespace IngameScript
                 {
                     yield return true;
                     itemTargets.Sort(itemTargetComparer);
+                }
+            }
+
+            foreach(var source in state.sources.ToList())
+            {
+                yield return true;
+                foreach (var e in source.Inventory.SumItems().ToList())
+                {
+                    yield return true;
+                    List<ItemTarget> targets;
+                    if (!state.itemTargets.TryGetValue(e.Key, out targets)) continue;
+
+                    foreach(var target in targets.ToList())
+                    {
+                        // TODO: compare filters source -> target
+                        yield return true;
+                    }
                 }
             }
 
