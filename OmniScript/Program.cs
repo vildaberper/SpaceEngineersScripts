@@ -74,8 +74,8 @@ namespace IngameScript
         const UpdateFrequency manageUpdateFrequency = UpdateFrequency.Update100;
         const int manageTargetInstructionCount = 1000;
 
-        const UpdateFrequency workUpdateFrequency = UpdateFrequency.Update10;
-        const int workTargetInstructionCount = 1000;
+        const UpdateFrequency transferUpdateFrequency = UpdateFrequency.Update10;
+        const int transferTargetInstructionCount = 1000;
 
         const UpdateFrequency scanUpdateFrequency = UpdateFrequency.Update100;
         const int scanTargetInstructionCount = 1000;
@@ -111,7 +111,7 @@ namespace IngameScript
         public readonly List<MyInventoryItem> IMyInventory_GetItems_items = new List<MyInventoryItem>();
 
         readonly UpdateType manageUpdateType = manageUpdateFrequency.ToUpdateType();
-        readonly UpdateType workUpdateType = workUpdateFrequency.ToUpdateType();
+        readonly UpdateType transferUpdateType = transferUpdateFrequency.ToUpdateType();
         readonly UpdateType scanUpdateType = scanUpdateFrequency.ToUpdateType();
         readonly UpdateType logUpdateType = logUpdateFrequency.ToUpdateType();
 
@@ -137,14 +137,14 @@ namespace IngameScript
 
         readonly State state;
         readonly Worker manager;
-        readonly Worker worker;
+        readonly Worker transferrer;
         readonly Worker scanner;
 
         public Program()
         {
             Instance = this;
 
-            Runtime.UpdateFrequency = manageUpdateFrequency | workUpdateFrequency | scanUpdateFrequency | logUpdateFrequency;
+            Runtime.UpdateFrequency = manageUpdateFrequency | transferUpdateFrequency | scanUpdateFrequency | logUpdateFrequency;
 
             if (!Me.CustomName.EndsWith(myName)) Me.CustomName += $" {myName}";
 
@@ -156,7 +156,7 @@ namespace IngameScript
 
             state = new State();
             manager = new Worker(Runtime, Manage);
-            worker = new Worker(Runtime, Work);
+            transferrer = new Worker(Runtime, Transfer);
             scanner = new Worker(Runtime, Scan);
 
             // Load Storage (string)
@@ -182,14 +182,8 @@ namespace IngameScript
         {
             if ((updateSource & manageUpdateType) != 0) manager.Cycle(manageTargetInstructionCount);
             if ((updateSource & scanUpdateType) != 0) scanner.Cycle(scanTargetInstructionCount);
-            if ((updateSource & workUpdateType) != 0) worker.Cycle(workTargetInstructionCount);
+            if ((updateSource & transferUpdateType) != 0) transferrer.Cycle(transferTargetInstructionCount);
             if ((updateSource & logUpdateType) != 0) Log();
-        }
-
-        public string GetDefaultFilter(string definition)
-        {
-            string filter;
-            return defaultFilters.TryGetValue(definition, out filter) ? filter : "-n";
         }
 
         public void Log()
@@ -197,7 +191,7 @@ namespace IngameScript
             if (!logToEcho && !logToSurface) return;
 
             var header = $"OmniScript v{version} [{logAnim[++logAnimIndex % logAnim.Length]}]";
-            var content = $"Manager {manager.Log}\nScanner {scanner.Log}\nWorker {worker.Log}";
+            var content = $"Manager {manager.Log}\nScanner {scanner.Log}\nTransferrer  {transferrer.Log}";
             var frame = $"{header}\n\n{content}";
             if (logToEcho) Echo(frame);
             if (logToSurface)
@@ -205,258 +199,6 @@ namespace IngameScript
                 Me.GetSurface(0).WriteText(content);
                 Me.GetSurface(1).WriteText(header);
             }
-        }
-
-        IEnumerator<bool> Manage(StringBuilder log)
-        {
-            if (!state.Initialized) yield break;
-
-            if (state.masterAssemblers.Count > 0)
-            {
-                var isQueueEmpty = true;
-                foreach (var id in state.masterAssemblers.ToList())
-                {
-                    yield return true;
-                    var assembler = state.blocks.Assembler(id);
-                    assembler.CooperativeMode = false;
-                    isQueueEmpty &= assembler.IsQueueEmpty;
-                }
-                foreach (var id in state.slaveAssemblers.ToList())
-                {
-                    yield return true;
-                    var assembler = state.blocks.Assembler(id);
-                    assembler.CooperativeMode = true;
-                    if (isQueueEmpty) assembler.ClearQueue();
-                }
-            }
-        }
-
-        private void AddItemTarget(MyItemType type, IManagedInventory inventory, Filter filter)
-        {
-            List<ItemTarget> itemTargets;
-            if (!state.itemTargets.TryGetValue(type, out itemTargets)) state.itemTargets.Add(type, itemTargets = new List<ItemTarget>());
-            itemTargets.Add(new ItemTarget(inventory, filter));
-        }
-        IEnumerator<bool> Work(StringBuilder log)
-        {
-            if (!state.Initialized) yield break;
-
-            if (state.targetsUpdated)
-            {
-                foreach (var target in state.itemTargets) target.Value.Clear();
-
-                foreach (var target in state.targets.ToList())
-                {
-                    yield return true;
-                    foreach (var filter in target.Filters)
-                    {
-                        foreach (var type in filter.Types)
-                        {
-                            AddItemTarget(type, target, filter);
-                        }
-                    }
-                }
-
-                foreach (var itemTargets in state.itemTargets.Values)
-                {
-                    yield return true;
-                    itemTargets.Sort(itemTargetComparer);
-                }
-            }
-
-            if (debugMode)
-            {
-                log.Append($"Sources ({state.sources.Count}):\n");
-                foreach (var source in state.sources.ToList())
-                {
-                    yield return true;
-                    log.Append($" - {source.Block.Name}{(source.Ready ? "" : "*")}\n");
-                }
-                log.Append($"Targets ({state.targets.Count}):\n");
-                foreach (var e in state.itemTargets)
-                {
-                    yield return true;
-                    if (e.Value.Count == 0) continue;
-                    log.Append($" - {e.Key.DisplayName()} ({e.Key.Group()}):\n");
-                    foreach (var itemTarget in e.Value)
-                    {
-                        log.Append($"   - {parseFilterPriority}{itemTarget.Priority}{(itemTarget.HasQuota ? $" {parseFilterQuota}{itemTarget.Quota}" : "")} {itemTarget.Inventory.Block.Name}\n");
-                    }
-                }
-            }
-        }
-
-        IEnumerator<bool> Scan(StringBuilder log)
-        {
-            var blocks = state.blocks;
-            var scanned = state.scanned;
-
-            var targetsUpdated = false;
-            var sources = new List<IManagedInventory>(state.sources);
-            var targets = new List<IManagedInventory>(state.targets);
-            var masterAssemblers = new HashSet<long>(state.masterAssemblers);
-            var slaveAssemblers = new HashSet<long>(state.slaveAssemblers);
-            var refineries = new HashSet<long>(state.refineries);
-            var gasGenerators = new HashSet<long>(state.gasGenerators);
-            var oxygenTanks = new HashSet<long>(state.oxygenTanks);
-            var hydrogenTanks = new HashSet<long>(state.hydrogenTanks);
-            var batteryBlocks = new HashSet<long>(state.batteryBlocks);
-            var reactors = new HashSet<long>(state.reactors);
-            var shipConnectors = new HashSet<long>(state.shipConnectors);
-
-            Action<long> remove = (id) =>
-            {
-                blocks.Remove(id);
-                scanned.Remove(id);
-                sources.RemoveAll(source => source.Block.Block.EntityId == id);
-                targets.RemoveAll(target => target.Block.Block.EntityId == id);
-                masterAssemblers.Remove(id);
-                slaveAssemblers.Remove(id);
-                refineries.Remove(id);
-                gasGenerators.Remove(id);
-                oxygenTanks.Remove(id);
-                hydrogenTanks.Remove(id);
-                batteryBlocks.Remove(id);
-                reactors.Remove(id);
-                shipConnectors.Remove(id);
-            };
-
-            var targetsCount = targets.Count;
-            foreach (var e in blocks.ToList())
-            {
-                yield return true;
-                if (e.Value.Closed || e.Value.Changed) remove(e.Key);
-            }
-            if (targetsCount != targets.Count) targetsUpdated = true;
-
-            foreach (var block in GridTerminalSystem.GetBlocks())
-            {
-                yield return true;
-                var id = block.EntityId;
-                if (scanned.Contains(id)) continue;
-                scanned.Add(id);
-
-                if (block.CustomName.IndexOf(ignoreTag) >= 0)
-                {
-                    blocks.Add(id, new WatchedBlock(block));
-                    continue;
-                }
-
-                if (manageAssemblers && block is IMyAssembler)
-                {
-                    var assembler = new ManagedAssembler((IMyAssembler)block);
-                    blocks.Add(id, assembler);
-                    sources.Add(assembler.Input);
-                    sources.Add(assembler.Output);
-                    if (assembler.Input.Filters.Count > 0) targets.Add(assembler.Input);
-                    (assembler.DefinedMaster ? masterAssemblers : slaveAssemblers).Add(id);
-                }
-                else if (manageRefineries && block is IMyRefinery)
-                {
-                    var refinery = new ManagedRefinery((IMyRefinery)block);
-                    blocks.Add(id, refinery);
-                    sources.Add(refinery.Input);
-                    if (refinery.Input.Filters.Count > 0) targets.Add(refinery.Input);
-                    sources.Add(refinery.Output);
-                    refineries.Add(id);
-                }
-                else if (manageGasGenerators && block is IMyGasGenerator)
-                {
-                    var gasGenerator = new ManagedGasGenerator((IMyGasGenerator)block);
-                    blocks.Add(id, gasGenerator);
-                    sources.Add(gasGenerator.Inventory);
-                    if (gasGenerator.Inventory.Filters.Count > 0) targets.Add(gasGenerator.Inventory);
-                    gasGenerators.Add(id);
-                }
-                else if (manageGasTanks && block is IMyGasTank)
-                {
-                    var gasTank = new ManagedGasTank((IMyGasTank)block);
-                    blocks.Add(id, gasTank);
-                    sources.Add(gasTank.Inventory);
-                    if (gasTank.Inventory.Filters.Count > 0) targets.Add(gasTank.Inventory);
-                    if (gasTank.IsOxygen) oxygenTanks.Add(id);
-                    else if (gasTank.IsHydrogen) hydrogenTanks.Add(id);
-                }
-                else if (manageBatteryBlocks && block is IMyBatteryBlock)
-                {
-                    var batteryBlock = new ManagedBatteryBlock((IMyBatteryBlock)block);
-                    blocks.Add(id, batteryBlock);
-                    batteryBlocks.Add(id);
-                }
-                else if (manageReactors && block is IMyReactor)
-                {
-                    var reactor = new ManagedReactor((IMyReactor)block);
-                    blocks.Add(id, reactor);
-                    sources.Add(reactor.Inventory);
-                    if (reactor.Inventory.Filters.Count > 0) targets.Add(reactor.Inventory);
-                    reactors.Add(id);
-                }
-                else if (manageShipConnectors && block is IMyShipConnector)
-                {
-                    var shipConnector = new ManagedShipConnector((IMyShipConnector)block);
-                    blocks.Add(id, shipConnector);
-                    sources.Add(shipConnector.Inventory);
-                    if (shipConnector.Inventory.Filters.Count > 0) targets.Add(shipConnector.Inventory);
-                    shipConnectors.Add(id);
-                }
-                else if (manageShipWelders && block is IMyShipWelder)
-                {
-                    var shipWelder = new ManagedShipWelder((IMyShipWelder)block);
-                    blocks.Add(id, shipWelder);
-                    sources.Add(shipWelder.Inventory);
-                    if (shipWelder.Inventory.Filters.Count > 0) targets.Add(shipWelder.Inventory);
-                }
-                else if (block.HasInventory && defaultFilters.ContainsKey(block.DefinitionDisplayNameText))
-                {
-                    if (block is IMyProductionBlock)
-                    {
-                        var productionBlock = new ManagedProductionBlock((IMyProductionBlock)block);
-                        blocks.Add(id, productionBlock);
-                        sources.Add(productionBlock.Output);
-                        if (productionBlock.Input.Filters.Count > 0) targets.Add(productionBlock.Input);
-                    }
-                    else
-                    {
-                        var inventoryBlock = new ManagedInventoryBlock(block);
-                        blocks.Add(id, inventoryBlock);
-                        sources.Add(inventoryBlock.Inventory);
-                        if (inventoryBlock.Inventory.Filters.Count > 0) targets.Add(inventoryBlock.Inventory);
-                    }
-                }
-                else if (block.HasInventory)
-                {
-                    blocks.Add(id, new WatchedBlock(block));
-                    // scanned.Remove(id);
-                    // log.Append($"{block.DefinitionDisplayNameText} ({block.CustomName})\n");
-                }
-            }
-            if (targetsCount != targets.Count) targetsUpdated = true;
-
-            var errorBlocks = blocks.Where(e => e.Value.HasError).ToList();
-            if (errorBlocks.Count > 0)
-            {
-                log.Append($"Errors ({errorBlocks.Count}):\n");
-                foreach (var e in errorBlocks)
-                {
-                    yield return true;
-                    log.Append($" - {e.Value.Name}: {e.Value.Error}\n");
-                }
-            }
-
-            state.Update(
-                targetsUpdated,
-                sources,
-                targets,
-                masterAssemblers,
-                slaveAssemblers,
-                refineries,
-                gasGenerators,
-                oxygenTanks,
-                hydrogenTanks,
-                batteryBlocks,
-                reactors,
-                shipConnectors
-            );
         }
     }
 }

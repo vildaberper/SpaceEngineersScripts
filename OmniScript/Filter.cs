@@ -22,6 +22,12 @@ namespace IngameScript
 {
     partial class Program
     {
+        public string GetDefaultFilter(string definition)
+        {
+            string filter;
+            return defaultFilters.TryGetValue(definition, out filter) ? filter : "-n";
+        }
+
         public class FilterException : Exception
         {
             public FilterException(string filterString) : base($"Failed to parse filter '{filterString}'") { }
