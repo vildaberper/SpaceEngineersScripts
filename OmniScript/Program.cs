@@ -89,6 +89,9 @@ namespace IngameScript
         const string parseFilterAll = "*";
         const string parseFilterSeparators = "\n;";
         const string parseFilterArgSeparators = " ";
+        const char parseFilterPriority = 'p';
+        const char parseFilterQuota = 'q';
+        const char parseFilterSubtract = '-';
 
         const string version = "0.0.1";
         #endregion
@@ -277,7 +280,7 @@ namespace IngameScript
                     log.Append($" - {e.Key.DisplayName()} ({e.Key.Group()}):\n");
                     foreach (var itemTarget in e.Value)
                     {
-                        log.Append($"   - p{itemTarget.Priority}{(itemTarget.HasQuota ? $" q{itemTarget.Quota}" : "")} {itemTarget.Inventory.Block.Name}\n");
+                        log.Append($"   - {parseFilterPriority}{itemTarget.Priority}{(itemTarget.HasQuota ? $" {parseFilterQuota}{itemTarget.Quota}" : "")} {itemTarget.Inventory.Block.Name}\n");
                     }
                 }
             }

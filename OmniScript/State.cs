@@ -44,7 +44,8 @@ namespace IngameScript
         {
             public int Compare(ItemTarget a, ItemTarget b) =>
                 b.Priority != a.Priority ? b.Priority - a.Priority :
-                b.HasQuota != a.HasQuota ? (b.HasQuota ? 1 : 0) - (a.HasQuota ? 1 : 0) :
+                b.HasQuota != a.HasQuota ? b.HasQuota ? 1 : -1 :
+                b.Inventory.Inventory.MaxVolume != a.Inventory.Inventory.MaxVolume ? b.Inventory.Inventory.MaxVolume < a.Inventory.Inventory.MaxVolume ? 1 : -1 :
                 b.Inventory.Block.Block.EntityId > a.Inventory.Block.Block.EntityId ? 1 : -1;
         }
 

@@ -54,11 +54,11 @@ namespace IngameScript
                 var types = new HashSet<MyItemType>();
                 foreach (var arg in args)
                 {
-                    if (arg[0] == 'p' && int.TryParse(arg.SubStr(1), out priority)) hasPriority = true;
-                    else if (arg[0] == 'q' && int.TryParse(arg.SubStr(1), out quota)) hasQuota = true;
+                    if (arg[0] == parseFilterPriority && int.TryParse(arg.SubStr(1), out priority)) hasPriority = true;
+                    else if (arg[0] == parseFilterQuota && int.TryParse(arg.SubStr(1), out quota)) hasQuota = true;
                     else
                     {
-                        var add = arg[0] != '-';
+                        var add = arg[0] != parseFilterSubtract;
                         if (!Instance.MatchItem(from, ref types, add ? arg : arg.SubStr(1), add))
                         {
                             result = null;
