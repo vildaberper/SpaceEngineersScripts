@@ -50,7 +50,7 @@ namespace IngameScript
                 var args = s.ToLower().Split(Instance._parseFilterArgSeparators, StringSplitOptions.RemoveEmptyEntries);
 
                 int priority = 0, quota = 0;
-                bool hasPriority = false, hasQuota = false;
+                bool hasPriority = false, hasQuota = false, hasTypes = false;
                 var types = new HashSet<MyItemType>();
                 foreach (var arg in args)
                 {
@@ -64,8 +64,10 @@ namespace IngameScript
                             result = null;
                             return false;
                         }
+                        hasTypes = true;
                     }
                 }
+                if (!hasTypes && (hasPriority || hasQuota)) from.ForEach(type => types.Add(type));
                 result = new Filter(types, hasPriority ? priority : defaultPriority, hasQuota ? quota : MyFixedPoint.MaxValue);
                 return true;
             }

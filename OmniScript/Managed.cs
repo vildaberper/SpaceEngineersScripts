@@ -108,11 +108,11 @@ namespace IngameScript
         {
             readonly Filters filters;
 
-            protected ManagedFilteredBlock(TBlock block, string defaultFilter = "") : base(block)
+            protected ManagedFilteredBlock(TBlock block) : base(block)
             {
                 try
                 {
-                    filters = Filters.Parse(block.GetInventory(), name, data, defaultFilter);
+                    filters = Filters.Parse(block.GetInventory(), name, data, Instance.GetDefaultFilter(block.DefinitionDisplayNameText));
                 }
                 catch (FilterException e)
                 {
@@ -128,7 +128,7 @@ namespace IngameScript
         {
             protected IManagedInventory inventory;
 
-            protected ManagedInventoryBlock(TBlock block, string defaultFilter = "") : base(block, defaultFilter) { }
+            protected ManagedInventoryBlock(TBlock block) : base(block) { }
 
             public IManagedInventory Inventory
             {
@@ -139,7 +139,7 @@ namespace IngameScript
 
         public class ManagedInventoryBlock : ManagedInventoryBlock<IMyTerminalBlock>
         {
-            public ManagedInventoryBlock(IMyTerminalBlock block, string defaultFilter = "") : base(block, defaultFilter)
+            public ManagedInventoryBlock(IMyTerminalBlock block) : base(block)
             {
                 Inventory = new ManagedInventory(this, block.GetInventory(), Filters);
             }
@@ -150,7 +150,7 @@ namespace IngameScript
             protected IManagedInventory input;
             protected IManagedInventory output;
 
-            protected ManagedProductionBlock(TBlock block, string defaultFilter = "") : base(block, defaultFilter) { }
+            protected ManagedProductionBlock(TBlock block) : base(block) { }
 
             public IManagedInventory Input
             {
@@ -166,7 +166,7 @@ namespace IngameScript
 
         public class ManagedProductionBlock : ManagedProductionBlock<IMyProductionBlock>
         {
-            public ManagedProductionBlock(IMyProductionBlock block, string defaultFilter = "") : base(block, defaultFilter)
+            public ManagedProductionBlock(IMyProductionBlock block) : base(block)
             {
                 Input = new ManagedInventory(this, block.InputInventory, Filters);
                 Output = new ManagedInventory(this, block.OutputInventory, Filters.None);
@@ -200,7 +200,7 @@ namespace IngameScript
 
         public class ManagedRefinery : ManagedProductionBlock<IMyRefinery>
         {
-            public ManagedRefinery(IMyRefinery block) : base(block, defaultRefineryFilter)
+            public ManagedRefinery(IMyRefinery block) : base(block)
             {
                 block.UseConveyorSystem = false;
                 Input = new ManagedInventory(this, block.InputInventory, Filters);
@@ -210,7 +210,7 @@ namespace IngameScript
 
         public class ManagedGasGenerator : ManagedInventoryBlock<IMyGasGenerator>
         {
-            public ManagedGasGenerator(IMyGasGenerator block) : base(block, defaultGasGeneratorFilter)
+            public ManagedGasGenerator(IMyGasGenerator block) : base(block)
             {
                 block.UseConveyorSystem = false;
                 block.AutoRefill = true;
@@ -220,7 +220,7 @@ namespace IngameScript
 
         public class ManagedReactor : ManagedInventoryBlock<IMyReactor>
         {
-            public ManagedReactor(IMyReactor block) : base(block, defaulReactorFilter)
+            public ManagedReactor(IMyReactor block) : base(block)
             {
                 block.UseConveyorSystem = false;
                 Inventory = new ManagedInventory(this, block.GetInventory(), Filters);

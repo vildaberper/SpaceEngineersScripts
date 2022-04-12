@@ -23,8 +23,53 @@ namespace IngameScript
     partial class Program : MyGridProgram
     {
         #region mdk preserve
+        const int defaultPriority = 0;
+
+        readonly Dictionary<string, string> defaultFilters = new Dictionary<string, string>()
+        {
+            {"Advanced Cargo Container", ""},
+            {"Artillery Turret", "p100 q10"},
+            {"Assault Cannon Turret", "p100 q10"},
+            {"Assembler", ""},
+            {"Basic Assembler", ""},
+            {"Basic Refinery", "p100 q1000"},
+            {"Cockpit", ""},
+            {"Cryo Chamber", ""},
+            {"Connector", ""},
+            {"Drill", ""},
+            {"Fighter Cockpit", ""},
+            {"Gatling Gun", "p100 q10"},
+            {"Gatling Turret", "p100 q10"},
+            {"Grinder", ""},
+            {"Hydrogen Tank", ""},
+            {"Interior Turret", "p100 q10"},
+            {"Large Cargo Container", ""},
+            {"Large Reactor", "p100 q100"},
+            {"Medium Cargo Container", ""},
+            {"Missile Turret", "p100 q10"},
+            {"O2/H2 Generator", "ice p100"},
+            {"Oxygen Tank", ""},
+            {"Refinery", "p100 q1000"},
+            {"Reloadable Rocket Launcher", "p100 q10"},
+            {"Small Cargo Container", ""},
+            {"Small Hydrogen Tank", ""},
+            {"Small Reactor", "p100 q50"},
+            {"Survival Kit", ""},
+            {"Welder", ""},
+        };
+
+        const bool manageAssemblers = true;
+        const bool manageRefineries = true;
+        const bool manageGasGenerators = true;
+        const bool manageGasTanks = true;
+        const bool manageBatteryBlocks = true;
+        const bool manageReactors = true;
+        const bool manageShipConnectors = true;
+        const bool manageShipWelders = true;
+
         readonly bool logToEcho = true;
         readonly bool logToSurface = false;
+        readonly bool debugMode = true;
 
         const UpdateFrequency manageUpdateFrequency = UpdateFrequency.Update100;
         const int manageTargetInstructionCount = 1000;
@@ -36,27 +81,6 @@ namespace IngameScript
         const int scanTargetInstructionCount = 1000;
 
         const UpdateFrequency logUpdateFrequency = UpdateFrequency.Update10;
-
-        const int defaultPriority = 0;
-        const string defaultRefineryFilter = "* p100 q1000";
-        const string defaultGasGeneratorFilter = "ice p100";
-        const string defaulReactorFilter = "* p100 q100";
-
-        readonly Dictionary<string, string> defaultFilters = new Dictionary<string, string>()
-        {
-            {"Advanced Cargo Container",""},
-            {"Large Cargo Container",""},
-            {"Small Cargo Container",""},
-            {"Cryo Chamber",""},
-            {"Gatling Turret","* p100 q10"},
-            {"Missile Turret","* p100 q10"},
-            {"Artillery Turret","* p100 q10"},
-            {"Assault Cannon Turret","* p100 q10"},
-            {"Interior Turret","* p100 q10"},
-            {"Cockpit",""},
-            {"Drill",""},
-            {"Grinder",""}
-        };
 
         const string ignoreTag = "!";
         const string configSectionKey = "os";
@@ -159,8 +183,16 @@ namespace IngameScript
             if ((updateSource & logUpdateType) != 0) Log();
         }
 
+        public string GetDefaultFilter(string definition)
+        {
+            string filter;
+            return defaultFilters.TryGetValue(definition, out filter) ? filter : "-n";
+        }
+
         public void Log()
         {
+            if (!logToEcho && !logToSurface) return;
+
             var header = $"OmniScript v{version} [{logAnim[++logAnimIndex % logAnim.Length]}]";
             var content = $"Manager {manager.Log}\nScanner {scanner.Log}\nWorker {worker.Log}";
             var frame = $"{header}\n\n{content}";
@@ -229,21 +261,24 @@ namespace IngameScript
                 }
             }
 
-            log.Append($"Sources ({state.sources.Count}):\n");
-            foreach (var source in state.sources.ToList())
+            if (debugMode)
             {
-                yield return true;
-                log.Append($" - {source.Block.Name}{(source.Ready ? "" : "*")}\n");
-            }
-            log.Append($"Targets ({state.targets.Count}):\n");
-            foreach (var e in state.itemTargets)
-            {
-                yield return true;
-                if (e.Value.Count == 0) continue;
-                log.Append($" - {e.Key.DisplayName()}:\n");
-                foreach (var itemTarget in e.Value)
+                log.Append($"Sources ({state.sources.Count}):\n");
+                foreach (var source in state.sources.ToList())
                 {
-                    log.Append($"   - p{itemTarget.Priority}{(itemTarget.HasQuota ? $" q{itemTarget.Quota}" : "")} {itemTarget.Inventory.Block.Name}\n");
+                    yield return true;
+                    log.Append($" - {source.Block.Name}{(source.Ready ? "" : "*")}\n");
+                }
+                log.Append($"Targets ({state.targets.Count}):\n");
+                foreach (var e in state.itemTargets)
+                {
+                    yield return true;
+                    if (e.Value.Count == 0) continue;
+                    log.Append($" - {e.Key.DisplayName()} ({e.Key.Group()}):\n");
+                    foreach (var itemTarget in e.Value)
+                    {
+                        log.Append($"   - p{itemTarget.Priority}{(itemTarget.HasQuota ? $" q{itemTarget.Quota}" : "")} {itemTarget.Inventory.Block.Name}\n");
+                    }
                 }
             }
         }
@@ -270,7 +305,6 @@ namespace IngameScript
             {
                 blocks.Remove(id);
                 scanned.Remove(id);
-                // Performance hit?
                 sources.RemoveAll(source => source.Block.Block.EntityId == id);
                 targets.RemoveAll(target => target.Block.Block.EntityId == id);
                 masterAssemblers.Remove(id);
@@ -305,17 +339,16 @@ namespace IngameScript
                     continue;
                 }
 
-                string filter;
-
-                if (block is IMyAssembler)
+                if (manageAssemblers && block is IMyAssembler)
                 {
                     var assembler = new ManagedAssembler((IMyAssembler)block);
                     blocks.Add(id, assembler);
                     sources.Add(assembler.Input);
                     sources.Add(assembler.Output);
+                    if (assembler.Input.Filters.Count > 0) targets.Add(assembler.Input);
                     (assembler.DefinedMaster ? masterAssemblers : slaveAssemblers).Add(id);
                 }
-                else if (block is IMyRefinery)
+                else if (manageRefineries && block is IMyRefinery)
                 {
                     var refinery = new ManagedRefinery((IMyRefinery)block);
                     blocks.Add(id, refinery);
@@ -324,7 +357,7 @@ namespace IngameScript
                     sources.Add(refinery.Output);
                     refineries.Add(id);
                 }
-                else if (block is IMyGasGenerator)
+                else if (manageGasGenerators && block is IMyGasGenerator)
                 {
                     var gasGenerator = new ManagedGasGenerator((IMyGasGenerator)block);
                     blocks.Add(id, gasGenerator);
@@ -332,7 +365,7 @@ namespace IngameScript
                     if (gasGenerator.Inventory.Filters.Count > 0) targets.Add(gasGenerator.Inventory);
                     gasGenerators.Add(id);
                 }
-                else if (block is IMyGasTank)
+                else if (manageGasTanks && block is IMyGasTank)
                 {
                     var gasTank = new ManagedGasTank((IMyGasTank)block);
                     blocks.Add(id, gasTank);
@@ -341,13 +374,13 @@ namespace IngameScript
                     if (gasTank.IsOxygen) oxygenTanks.Add(id);
                     else if (gasTank.IsHydrogen) hydrogenTanks.Add(id);
                 }
-                else if (block is IMyBatteryBlock)
+                else if (manageBatteryBlocks && block is IMyBatteryBlock)
                 {
                     var batteryBlock = new ManagedBatteryBlock((IMyBatteryBlock)block);
                     blocks.Add(id, batteryBlock);
                     batteryBlocks.Add(id);
                 }
-                else if (block is IMyReactor)
+                else if (manageReactors && block is IMyReactor)
                 {
                     var reactor = new ManagedReactor((IMyReactor)block);
                     blocks.Add(id, reactor);
@@ -355,7 +388,7 @@ namespace IngameScript
                     if (reactor.Inventory.Filters.Count > 0) targets.Add(reactor.Inventory);
                     reactors.Add(id);
                 }
-                else if (block is IMyShipConnector)
+                else if (manageShipConnectors && block is IMyShipConnector)
                 {
                     var shipConnector = new ManagedShipConnector((IMyShipConnector)block);
                     blocks.Add(id, shipConnector);
@@ -363,35 +396,35 @@ namespace IngameScript
                     if (shipConnector.Inventory.Filters.Count > 0) targets.Add(shipConnector.Inventory);
                     shipConnectors.Add(id);
                 }
-                else if (block is IMyShipWelder)
+                else if (manageShipWelders && block is IMyShipWelder)
                 {
                     var shipWelder = new ManagedShipWelder((IMyShipWelder)block);
                     blocks.Add(id, shipWelder);
                     sources.Add(shipWelder.Inventory);
                     if (shipWelder.Inventory.Filters.Count > 0) targets.Add(shipWelder.Inventory);
                 }
-                else if (block.HasInventory && defaultFilters.TryGetValue(block.DefinitionDisplayNameText, out filter))
+                else if (block.HasInventory && defaultFilters.ContainsKey(block.DefinitionDisplayNameText))
                 {
                     if (block is IMyProductionBlock)
                     {
-                        var productionBlock = new ManagedProductionBlock((IMyProductionBlock)block, filter);
+                        var productionBlock = new ManagedProductionBlock((IMyProductionBlock)block);
                         blocks.Add(id, productionBlock);
                         sources.Add(productionBlock.Output);
                         if (productionBlock.Input.Filters.Count > 0) targets.Add(productionBlock.Input);
                     }
                     else
                     {
-                        var inventoryBlock = new ManagedInventoryBlock(block, filter);
+                        var inventoryBlock = new ManagedInventoryBlock(block);
                         blocks.Add(id, inventoryBlock);
                         sources.Add(inventoryBlock.Inventory);
                         if (inventoryBlock.Inventory.Filters.Count > 0) targets.Add(inventoryBlock.Inventory);
                     }
                 }
-                else
+                else if (block.HasInventory)
                 {
-                    // blocks.Add(id, new WatchedBlock(block));
+                    blocks.Add(id, new WatchedBlock(block));
                     // scanned.Remove(id);
-                    log.Append($"{block.DefinitionDisplayNameText} ({block.CustomName})\n");
+                    // log.Append($"{block.DefinitionDisplayNameText} ({block.CustomName})\n");
                 }
             }
             if (targetsCount != targets.Count) targetsUpdated = true;
@@ -402,6 +435,7 @@ namespace IngameScript
                 log.Append($"Errors ({errorBlocks.Count}):\n");
                 foreach (var e in errorBlocks)
                 {
+                    yield return true;
                     log.Append($" - {e.Value.Name}: {e.Value.Error}\n");
                 }
             }
