@@ -57,6 +57,7 @@ namespace IngameScript
             public HashSet<long> scanned = new HashSet<long>();
             public Dictionary<MyItemType, List<ItemTarget>> itemTargets = new Dictionary<MyItemType, List<ItemTarget>>();
 
+            public bool targetsUpdated = false;
             public List<IManagedInventory> sources = new List<IManagedInventory>();
             public List<IManagedInventory> targets = new List<IManagedInventory>();
             public HashSet<long> masterAssemblers = new HashSet<long>();
@@ -70,6 +71,7 @@ namespace IngameScript
             public HashSet<long> shipConnectors = new HashSet<long>();
 
             public void Update(
+                bool targetsUpdated,
                 List<IManagedInventory> sources,
                 List<IManagedInventory> targets,
                 HashSet<long> masterAssemblers,
@@ -83,6 +85,7 @@ namespace IngameScript
                 HashSet<long> shipConnectors
             )
             {
+                this.targetsUpdated = targetsUpdated;
                 Util.Swap(ref this.sources, ref sources);
                 Util.Swap(ref this.targets, ref targets);
                 Util.Swap(ref this.masterAssemblers, ref masterAssemblers);

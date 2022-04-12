@@ -57,8 +57,8 @@ namespace IngameScript
             return Program.Instance.IMyInventory_GetAcceptedItems_itemTypes;
         }
 
-        public static string DisplayName(this MyItemType it) => Program.Items.Get(it).DisplayName;
-        public static string Group(this MyItemType it) => Program.Items.Get(it).Group;
+        public static string DisplayName(this MyItemType it) => Program.Instance.GetItem(it).DisplayName;
+        public static string Group(this MyItemType it) => Program.Instance.GetItem(it).Group;
 
         public static bool IsOxygen(this IMyGasTank gt) => gt.BlockDefinition.SubtypeId.Length == 0 || gt.BlockDefinition.SubtypeId.Contains("Oxygen");
         public static bool IsHydrogen(this IMyGasTank gt) => gt.BlockDefinition.SubtypeId.Contains("Hydrogen");

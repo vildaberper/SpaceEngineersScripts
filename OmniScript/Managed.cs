@@ -56,6 +56,11 @@ namespace IngameScript
             public virtual bool Changed { get { return !block.CustomName.Equals(name) || !block.CustomData.Equals(data); } }
         }
 
+        public class WatchedBlock : ManagedBlock<IMyTerminalBlock>
+        {
+            public WatchedBlock(IMyTerminalBlock block) : base(block) { }
+        }
+
         public class ManagedBlocks : Dictionary<long, IManagedBlock>
         {
             public ManagedBlocks() : base() { }
@@ -103,11 +108,11 @@ namespace IngameScript
         {
             readonly Filters filters;
 
-            protected ManagedFilteredBlock(TBlock block, string defaultFilter) : base(block)
+            protected ManagedFilteredBlock(TBlock block, string defaultFilter = "") : base(block)
             {
                 try
                 {
-                    filters = Filters.Parse(block.GetInventory(0), name, data, defaultFilter);
+                    filters = Filters.Parse(block.GetInventory(), name, data, defaultFilter);
                 }
                 catch (FilterException e)
                 {
@@ -132,12 +137,20 @@ namespace IngameScript
             }
         }
 
+        public class ManagedInventoryBlock : ManagedInventoryBlock<IMyTerminalBlock>
+        {
+            public ManagedInventoryBlock(IMyTerminalBlock block, string defaultFilter = "") : base(block, defaultFilter)
+            {
+                Inventory = new ManagedInventory(this, block.GetInventory(), Filters);
+            }
+        }
+
         public abstract class ManagedProductionBlock<TBlock> : ManagedFilteredBlock<TBlock> where TBlock : IMyProductionBlock
         {
             protected IManagedInventory input;
             protected IManagedInventory output;
 
-            protected ManagedProductionBlock(TBlock block, string defaultFilter) : base(block, defaultFilter) { }
+            protected ManagedProductionBlock(TBlock block, string defaultFilter = "") : base(block, defaultFilter) { }
 
             public IManagedInventory Input
             {
@@ -151,6 +164,15 @@ namespace IngameScript
             }
         }
 
+        public class ManagedProductionBlock : ManagedProductionBlock<IMyProductionBlock>
+        {
+            public ManagedProductionBlock(IMyProductionBlock block, string defaultFilter = "") : base(block, defaultFilter)
+            {
+                Input = new ManagedInventory(this, block.InputInventory, Filters);
+                Output = new ManagedInventory(this, block.OutputInventory, Filters.None);
+            }
+        }
+
         public class ManagedAssemblerInputInventory : ManagedInventory<ManagedAssembler>
         {
             public ManagedAssemblerInputInventory(ManagedAssembler block, Filters filters) : base(block, ((IMyAssembler)block.Block).InputInventory, filters) { }
@@ -159,7 +181,7 @@ namespace IngameScript
         }
         public class ManagedAssembler : ManagedProductionBlock<IMyAssembler>
         {
-            public ManagedAssembler(IMyAssembler block) : base(block, defaultAssemblerFilter)
+            public ManagedAssembler(IMyAssembler block) : base(block)
             {
                 block.UseConveyorSystem = true;
                 Input = new ManagedAssemblerInputInventory(this, Filters);

@@ -60,7 +60,7 @@ namespace IngameScript
                 var sb = new StringBuilder(s[0].ToString());
                 for (int i = 1; i < l; ++i)
                 {
-                    if (s[i] == 'G' && i + 8 < l && s.Substring(i, 8) == "Gun_Mag_")
+                    if (s[i] == 'G' && i + 8 < l && s.Substring(i + 1, 7) == "un_Mag_")
                     {
                         sb.Append(" Magazine");
                         break;
@@ -81,7 +81,6 @@ namespace IngameScript
                     case "MyObjectBuilder_ConsumableItem":
                         return "Consumable";
                     case "MyObjectBuilder_GasContainerObject":
-                        return "Bottle";
                     case "MyObjectBuilder_OxygenContainerObject":
                         return "Bottle";
                     case "MyObjectBuilder_Datapad":
@@ -101,27 +100,25 @@ namespace IngameScript
             }
         }
 
-        public static class Items
+        public readonly Dictionary<MyItemType, Item> itemTypes = new Dictionary<MyItemType, Item>();
+
+        public Item GetItem(MyItemType it)
         {
+            Item item;
+            if (!itemTypes.TryGetValue(it, out item)) itemTypes.Add(it, item = new Item(it));
+            return item;
+        }
 
-            public static Item Get(MyItemType it)
+        public bool MatchItem(List<MyItemType> from, ref HashSet<MyItemType> types, string s, bool add)
+        {
+            var startCount = types.Count;
+            foreach (var it in from)
             {
-                Item item;
-                if (!Instance.itemTypes.TryGetValue(it, out item)) Instance.itemTypes.Add(it, item = new Item(it));
-                return item;
+                if (!GetItem(it).Match(s)) continue;
+                if (add) types.Add(it);
+                else types.Remove(it);
             }
-
-            public static bool Match(List<MyItemType> from, ref HashSet<MyItemType> types, string s, bool add)
-            {
-                var startCount = types.Count;
-                foreach (var it in from)
-                {
-                    if (!Get(it).Match(s)) continue;
-                    if (add) types.Add(it);
-                    else types.Remove(it);
-                }
-                return startCount != types.Count;
-            }
+            return startCount != types.Count;
         }
     }
 }

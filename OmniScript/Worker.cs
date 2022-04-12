@@ -35,6 +35,8 @@ namespace IngameScript
             int totalRuns = 0;
             int maxInstructionCount = -1;
 
+            const string idle = "idle...\n";
+
             public string Log => log;
             public int CycleCount => cycleCount;
             public int InstructionCount => instructionCount;
@@ -80,6 +82,10 @@ namespace IngameScript
                         cycleCount = cycleCountInProgress;
                         instructionCount = instructionCountInProgress;
                         log = $"({maxInstructionCount}/{instructionCount}/{cycleCount}) [{++totalRuns}]{(logBuilder.Length > 0 ? ":" : ".")}\n{logBuilder}";
+                    }
+                    else
+                    {
+                        log = idle;
                     }
                 }
             }

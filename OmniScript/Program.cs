@@ -26,6 +26,9 @@ namespace IngameScript
         readonly bool logToEcho = true;
         readonly bool logToSurface = false;
 
+        const UpdateFrequency manageUpdateFrequency = UpdateFrequency.Update100;
+        const int manageTargetInstructionCount = 1000;
+
         const UpdateFrequency workUpdateFrequency = UpdateFrequency.Update10;
         const int workTargetInstructionCount = 1000;
 
@@ -35,12 +38,27 @@ namespace IngameScript
         const UpdateFrequency logUpdateFrequency = UpdateFrequency.Update10;
 
         const int defaultPriority = 0;
-
-        const string defaultAssemblerFilter = "";
         const string defaultRefineryFilter = "* p100 q1000";
         const string defaultGasGeneratorFilter = "ice p100";
         const string defaulReactorFilter = "* p100 q100";
 
+        readonly Dictionary<string, string> defaultFilters = new Dictionary<string, string>()
+        {
+            {"Advanced Cargo Container",""},
+            {"Large Cargo Container",""},
+            {"Small Cargo Container",""},
+            {"Cryo Chamber",""},
+            {"Gatling Turret","* p100 q10"},
+            {"Missile Turret","* p100 q10"},
+            {"Artillery Turret","* p100 q10"},
+            {"Assault Cannon Turret","* p100 q10"},
+            {"Interior Turret","* p100 q10"},
+            {"Cockpit",""},
+            {"Drill",""},
+            {"Grinder",""}
+        };
+
+        const string ignoreTag = "!";
         const string configSectionKey = "os";
         const string parseFilterPrefix = "(";
         const string parseFilterSuffix = " os)";
@@ -51,7 +69,7 @@ namespace IngameScript
         const string version = "0.0.1";
         #endregion
 
-        public static Program Instance { get; protected set; }
+        public static Program Instance { get; private set; }
 
         const string myName = "(os)";
 
@@ -60,13 +78,14 @@ namespace IngameScript
 
         public readonly MyIni ini = new MyIni();
         public readonly ItemTargetComparer itemTargetComparer = new ItemTargetComparer();
+
         public readonly List<IMyTerminalBlock> IMyGridTerminalSystem_GetBlocks_blocks = new List<IMyTerminalBlock>();
         public readonly List<MyItemType> IMyInventory_GetAcceptedItems_itemTypes = new List<MyItemType>();
         public readonly List<MyInventoryItem> IMyInventory_GetItems_items = new List<MyInventoryItem>();
-        public readonly Dictionary<MyItemType, Item> itemTypes = new Dictionary<MyItemType, Item>();
 
-        readonly UpdateType scanUpdateType = scanUpdateFrequency.ToUpdateType();
+        readonly UpdateType manageUpdateType = manageUpdateFrequency.ToUpdateType();
         readonly UpdateType workUpdateType = workUpdateFrequency.ToUpdateType();
+        readonly UpdateType scanUpdateType = scanUpdateFrequency.ToUpdateType();
         readonly UpdateType logUpdateType = logUpdateFrequency.ToUpdateType();
 
         readonly string[] logAnim = new string[] {
@@ -90,6 +109,7 @@ namespace IngameScript
         int logAnimIndex = -1;
 
         readonly State state;
+        readonly Worker manager;
         readonly Worker worker;
         readonly Worker scanner;
 
@@ -97,7 +117,7 @@ namespace IngameScript
         {
             Instance = this;
 
-            Runtime.UpdateFrequency = workUpdateFrequency | scanUpdateFrequency | logUpdateFrequency;
+            Runtime.UpdateFrequency = manageUpdateFrequency | workUpdateFrequency | scanUpdateFrequency | logUpdateFrequency;
 
             if (!Me.CustomName.EndsWith(myName)) Me.CustomName += $" {myName}";
 
@@ -108,6 +128,7 @@ namespace IngameScript
             }
 
             state = new State();
+            manager = new Worker(Runtime, Manage);
             worker = new Worker(Runtime, Work);
             scanner = new Worker(Runtime, Scan);
 
@@ -132,6 +153,7 @@ namespace IngameScript
 
         public void Main(string argument, UpdateType updateSource)
         {
+            if ((updateSource & manageUpdateType) != 0) manager.Cycle(manageTargetInstructionCount);
             if ((updateSource & scanUpdateType) != 0) scanner.Cycle(scanTargetInstructionCount);
             if ((updateSource & workUpdateType) != 0) worker.Cycle(workTargetInstructionCount);
             if ((updateSource & logUpdateType) != 0) Log();
@@ -140,7 +162,7 @@ namespace IngameScript
         public void Log()
         {
             var header = $"OmniScript v{version} [{logAnim[++logAnimIndex % logAnim.Length]}]";
-            var content = $"Scanner {scanner.Log}\nWorker {worker.Log}";
+            var content = $"Manager {manager.Log}\nScanner {scanner.Log}\nWorker {worker.Log}";
             var frame = $"{header}\n\n{content}";
             if (logToEcho) Echo(frame);
             if (logToSurface)
@@ -150,19 +172,9 @@ namespace IngameScript
             }
         }
 
-        IEnumerator<bool> Work(StringBuilder log)
+        IEnumerator<bool> Manage(StringBuilder log)
         {
             if (!state.Initialized) yield break;
-
-            var errorBlocks = state.blocks.Where(e => e.Value.HasError).ToList();
-            if (errorBlocks.Count > 0)
-            {
-                log.Append($"Errors ({errorBlocks.Count}):\n");
-                foreach (var e in errorBlocks)
-                {
-                    log.Append($" - {e.Value.Name}: {e.Value.Error}\n");
-                }
-            }
 
             if (state.masterAssemblers.Count > 0)
             {
@@ -182,34 +194,39 @@ namespace IngameScript
                     if (isQueueEmpty) assembler.ClearQueue();
                 }
             }
+        }
 
-            var targets = state.itemTargets;
-            foreach (var target in targets) target.Value.Clear();
+        private void AddItemTarget(MyItemType type, IManagedInventory inventory, Filter filter)
+        {
+            List<ItemTarget> itemTargets;
+            if (!state.itemTargets.TryGetValue(type, out itemTargets)) state.itemTargets.Add(type, itemTargets = new List<ItemTarget>());
+            itemTargets.Add(new ItemTarget(inventory, filter));
+        }
+        IEnumerator<bool> Work(StringBuilder log)
+        {
+            if (!state.Initialized) yield break;
 
-            Action<MyItemType, IManagedInventory, Filter> add = (type, inventory, filter) =>
+            if (state.targetsUpdated)
             {
-                List<ItemTarget> itemTargets;
-                if (!targets.TryGetValue(type, out itemTargets)) targets.Add(type, itemTargets = new List<ItemTarget>());
+                foreach (var target in state.itemTargets) target.Value.Clear();
 
-                itemTargets.Add(new ItemTarget(inventory, filter));
-            };
-
-            foreach (var target in state.targets.ToList())
-            {
-                yield return true;
-                foreach (var filter in target.Filters)
+                foreach (var target in state.targets.ToList())
                 {
-                    foreach (var type in filter.Types)
+                    yield return true;
+                    foreach (var filter in target.Filters)
                     {
-                        add(type, target, filter);
+                        foreach (var type in filter.Types)
+                        {
+                            AddItemTarget(type, target, filter);
+                        }
                     }
                 }
-            }
 
-            foreach (var itemTargets in targets.Values)
-            {
-                yield return true;
-                itemTargets.Sort(itemTargetComparer);
+                foreach (var itemTargets in state.itemTargets.Values)
+                {
+                    yield return true;
+                    itemTargets.Sort(itemTargetComparer);
+                }
             }
 
             log.Append($"Sources ({state.sources.Count}):\n");
@@ -219,28 +236,16 @@ namespace IngameScript
                 log.Append($" - {source.Block.Name}{(source.Ready ? "" : "*")}\n");
             }
             log.Append($"Targets ({state.targets.Count}):\n");
-            foreach (var e in targets)
+            foreach (var e in state.itemTargets)
             {
                 yield return true;
+                if (e.Value.Count == 0) continue;
                 log.Append($" - {e.Key.DisplayName()}:\n");
                 foreach (var itemTarget in e.Value)
                 {
                     log.Append($"   - p{itemTarget.Priority}{(itemTarget.HasQuota ? $" q{itemTarget.Quota}" : "")} {itemTarget.Inventory.Block.Name}\n");
                 }
             }
-            /*foreach (var target in state.targets.ToList())
-            {
-                log.Append($"{target.GetType().Name.SubStr(7)} ({target.Block.Name}){(target.Ready ? "" : "*")}\n");
-                foreach (var filter in target.Filters)
-                {
-                    log.Append($" * {filter.Types.Count} p{filter.Priority}{(filter.HasQuota ? $" q{filter.Quota}" : "")}\n");
-                    foreach (var type in filter.Types)
-                    {
-                        log.Append($"  - {type.DisplayName()} {type.Group()}\n");
-                    }
-                }
-                yield return true;
-            }*/
         }
 
         IEnumerator<bool> Scan(StringBuilder log)
@@ -248,6 +253,7 @@ namespace IngameScript
             var blocks = state.blocks;
             var scanned = state.scanned;
 
+            var targetsUpdated = false;
             var sources = new List<IManagedInventory>(state.sources);
             var targets = new List<IManagedInventory>(state.targets);
             var masterAssemblers = new HashSet<long>(state.masterAssemblers);
@@ -278,11 +284,13 @@ namespace IngameScript
                 shipConnectors.Remove(id);
             };
 
+            var targetsCount = targets.Count;
             foreach (var e in blocks.ToList())
             {
                 yield return true;
                 if (e.Value.Closed || e.Value.Changed) remove(e.Key);
             }
+            if (targetsCount != targets.Count) targetsUpdated = true;
 
             foreach (var block in GridTerminalSystem.GetBlocks())
             {
@@ -290,6 +298,14 @@ namespace IngameScript
                 var id = block.EntityId;
                 if (scanned.Contains(id)) continue;
                 scanned.Add(id);
+
+                if (block.CustomName.IndexOf(ignoreTag) >= 0)
+                {
+                    blocks.Add(id, new WatchedBlock(block));
+                    continue;
+                }
+
+                string filter;
 
                 if (block is IMyAssembler)
                 {
@@ -304,7 +320,7 @@ namespace IngameScript
                     var refinery = new ManagedRefinery((IMyRefinery)block);
                     blocks.Add(id, refinery);
                     sources.Add(refinery.Input);
-                    targets.Add(refinery.Input);
+                    if (refinery.Input.Filters.Count > 0) targets.Add(refinery.Input);
                     sources.Add(refinery.Output);
                     refineries.Add(id);
                 }
@@ -313,7 +329,7 @@ namespace IngameScript
                     var gasGenerator = new ManagedGasGenerator((IMyGasGenerator)block);
                     blocks.Add(id, gasGenerator);
                     sources.Add(gasGenerator.Inventory);
-                    targets.Add(gasGenerator.Inventory);
+                    if (gasGenerator.Inventory.Filters.Count > 0) targets.Add(gasGenerator.Inventory);
                     gasGenerators.Add(id);
                 }
                 else if (block is IMyGasTank)
@@ -321,7 +337,7 @@ namespace IngameScript
                     var gasTank = new ManagedGasTank((IMyGasTank)block);
                     blocks.Add(id, gasTank);
                     sources.Add(gasTank.Inventory);
-                    targets.Add(gasTank.Inventory);
+                    if (gasTank.Inventory.Filters.Count > 0) targets.Add(gasTank.Inventory);
                     if (gasTank.IsOxygen) oxygenTanks.Add(id);
                     else if (gasTank.IsHydrogen) hydrogenTanks.Add(id);
                 }
@@ -336,7 +352,7 @@ namespace IngameScript
                     var reactor = new ManagedReactor((IMyReactor)block);
                     blocks.Add(id, reactor);
                     sources.Add(reactor.Inventory);
-                    targets.Add(reactor.Inventory);
+                    if (reactor.Inventory.Filters.Count > 0) targets.Add(reactor.Inventory);
                     reactors.Add(id);
                 }
                 else if (block is IMyShipConnector)
@@ -344,7 +360,7 @@ namespace IngameScript
                     var shipConnector = new ManagedShipConnector((IMyShipConnector)block);
                     blocks.Add(id, shipConnector);
                     sources.Add(shipConnector.Inventory);
-                    targets.Add(shipConnector.Inventory);
+                    if (shipConnector.Inventory.Filters.Count > 0) targets.Add(shipConnector.Inventory);
                     shipConnectors.Add(id);
                 }
                 else if (block is IMyShipWelder)
@@ -352,18 +368,46 @@ namespace IngameScript
                     var shipWelder = new ManagedShipWelder((IMyShipWelder)block);
                     blocks.Add(id, shipWelder);
                     sources.Add(shipWelder.Inventory);
+                    if (shipWelder.Inventory.Filters.Count > 0) targets.Add(shipWelder.Inventory);
                 }
-                else if (block is IMyCargoContainer)
+                else if (block.HasInventory && defaultFilters.TryGetValue(block.DefinitionDisplayNameText, out filter))
                 {
-                    var cargoContainer = (IMyCargoContainer)block;
-                    log.Append($"CargoContainer ({block.CustomName})\n");
+                    if (block is IMyProductionBlock)
+                    {
+                        var productionBlock = new ManagedProductionBlock((IMyProductionBlock)block, filter);
+                        blocks.Add(id, productionBlock);
+                        sources.Add(productionBlock.Output);
+                        if (productionBlock.Input.Filters.Count > 0) targets.Add(productionBlock.Input);
+                    }
+                    else
+                    {
+                        var inventoryBlock = new ManagedInventoryBlock(block, filter);
+                        blocks.Add(id, inventoryBlock);
+                        sources.Add(inventoryBlock.Inventory);
+                        if (inventoryBlock.Inventory.Filters.Count > 0) targets.Add(inventoryBlock.Inventory);
+                    }
                 }
                 else
                 {
-                    log.Append($"Other {block.GetType().Name} ({block.CustomName})\n");
+                    // blocks.Add(id, new WatchedBlock(block));
+                    // scanned.Remove(id);
+                    log.Append($"{block.DefinitionDisplayNameText} ({block.CustomName})\n");
                 }
             }
+            if (targetsCount != targets.Count) targetsUpdated = true;
+
+            var errorBlocks = blocks.Where(e => e.Value.HasError).ToList();
+            if (errorBlocks.Count > 0)
+            {
+                log.Append($"Errors ({errorBlocks.Count}):\n");
+                foreach (var e in errorBlocks)
+                {
+                    log.Append($" - {e.Value.Name}: {e.Value.Error}\n");
+                }
+            }
+
             state.Update(
+                targetsUpdated,
                 sources,
                 targets,
                 masterAssemblers,

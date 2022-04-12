@@ -59,7 +59,7 @@ namespace IngameScript
                     else
                     {
                         var add = arg[0] != '-';
-                        if (!Items.Match(from, ref types, add ? arg : arg.SubStr(1), add))
+                        if (!Instance.MatchItem(from, ref types, add ? arg : arg.SubStr(1), add))
                         {
                             result = null;
                             return false;
@@ -74,6 +74,8 @@ namespace IngameScript
         public class Filters : List<Filter>
         {
             public Filters() : base() { }
+
+            public static Filters None = new Filters();
 
             /// <exception cref="FilterException"></exception>
             public static Filters Parse(IMyInventory inventory, string name, string data, string defaultFilter = "")
@@ -100,8 +102,6 @@ namespace IngameScript
 
                 return filters;
             }
-
-            public static Filters None = new Filters();
         }
     }
 }
