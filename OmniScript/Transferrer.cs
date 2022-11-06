@@ -56,19 +56,45 @@ namespace IngameScript
                 }
             }
 
-            foreach(var source in state.sources.ToList())
+            foreach (var source in state.sources.ToList())
             {
                 yield return true;
+                if (!source.Ready) continue;
+
                 foreach (var e in source.Inventory.SumItems().ToList())
                 {
                     yield return true;
-                    List<ItemTarget> targets;
-                    if (!state.itemTargets.TryGetValue(e.Key, out targets)) continue;
 
-                    foreach(var target in targets.ToList())
+                    var type = e.Key;
+                    List<ItemTarget> targets;
+                    if (!state.itemTargets.TryGetValue(type, out targets)) continue;
+
+                    var sourceAmount = e.Value;
+                    var sourceFilters = source.ApplyFilters ? source.Filters.Where(filter => filter.Types.Contains(type)) : Filters.None;
+
+                    foreach (var target in targets.ToList())
                     {
-                        // TODO: compare filters source -> target
                         yield return true;
+                        if (!target.Inventory.Ready || !target.Inventory.ApplyFilters || source.Inventory == target.Inventory.Inventory || target.Inventory.Inventory.IsFull) continue;
+
+                        var targetAmount = target.Inventory.Inventory.GetItemAmount(type);
+
+                        if (target.HasQuota && targetAmount >= target.Quota) continue;
+
+                        var toTransfer = sourceAmount;
+                        if (target.HasQuota) toTransfer = MyFixedPoint.Min(toTransfer, target.Quota - targetAmount);
+
+                        foreach (var sourceFilter in sourceFilters)
+                        {
+                            if (filterComparer.Compare(target.Filter, sourceFilter) <= 0) continue;
+
+                            toTransfer = MyFixedPoint.Min(toTransfer, sourceFilter.HasQuota ? sourceAmount - sourceFilter.Quota : MyFixedPoint.Zero);
+                            if (toTransfer <= MyFixedPoint.Zero) break;
+                        }
+                        if (toTransfer <= MyFixedPoint.Zero) continue;
+
+                        sourceAmount -= source.Inventory.TransferItemTypeTo(target.Inventory.Inventory, type, toTransfer);
+                        if (sourceAmount <= MyFixedPoint.Zero) break;
                     }
                 }
             }

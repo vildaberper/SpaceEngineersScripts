@@ -105,6 +105,7 @@ namespace IngameScript
 
         public readonly MyIni ini = new MyIni();
         public readonly ItemTargetComparer itemTargetComparer = new ItemTargetComparer();
+        public readonly FilterComparer filterComparer = new FilterComparer();
 
         public readonly List<IMyTerminalBlock> IMyGridTerminalSystem_GetBlocks_blocks = new List<IMyTerminalBlock>();
         public readonly List<MyItemType> IMyInventory_GetAcceptedItems_itemTypes = new List<MyItemType>();

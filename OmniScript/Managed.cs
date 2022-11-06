@@ -30,6 +30,7 @@ namespace IngameScript
             string Error { get; }
             bool HasError { get; }
             bool Closed { get; }
+            bool Enabled { get; }
             bool Changed { get; }
         }
 
@@ -53,6 +54,7 @@ namespace IngameScript
             public string Error => error;
             public bool HasError => error.Length > 0;
             public bool Closed => block.Closed;
+            public bool Enabled => block.IsWorking;
             public virtual bool Changed { get { return !block.CustomName.Equals(name) || !block.CustomData.Equals(data); } }
         }
 
@@ -78,6 +80,7 @@ namespace IngameScript
             IManagedBlock Block { get; }
             IMyInventory Inventory { get; }
             Filters Filters { get; }
+            bool ApplyFilters { get; }
             bool Ready { get; }
         }
 
@@ -97,6 +100,7 @@ namespace IngameScript
             public IManagedBlock Block => block;
             public IMyInventory Inventory => inventory;
             public Filters Filters => filters;
+            public virtual bool ApplyFilters => true;
             public virtual bool Ready => true;
         }
         public class ManagedInventory : ManagedInventory<IManagedBlock>
@@ -177,7 +181,7 @@ namespace IngameScript
         {
             public ManagedAssemblerInputInventory(ManagedAssembler block, Filters filters) : base(block, ((IMyAssembler)block.Block).InputInventory, filters) { }
 
-            public override bool Ready => block.IsQueueEmpty;
+            public override bool Ready => block.IsQueueEmpty && base.Ready;
         }
         public class ManagedAssembler : ManagedProductionBlock<IMyAssembler>
         {
@@ -198,12 +202,18 @@ namespace IngameScript
             }
         }
 
+        public class ManagedRefineryInputInventory : ManagedInventory<ManagedRefinery>
+        {
+            public ManagedRefineryInputInventory(ManagedRefinery block, Filters filters) : base(block, ((IMyRefinery)block.Block).InputInventory, filters) { }
+
+            public override bool ApplyFilters => block.Enabled;
+        }
         public class ManagedRefinery : ManagedProductionBlock<IMyRefinery>
         {
             public ManagedRefinery(IMyRefinery block) : base(block)
             {
                 block.UseConveyorSystem = false;
-                Input = new ManagedInventory(this, block.InputInventory, Filters);
+                Input = new ManagedRefineryInputInventory(this, Filters);
                 Output = new ManagedInventory(this, block.OutputInventory, Filters.None);
             }
         }
@@ -258,7 +268,7 @@ namespace IngameScript
         {
             public ManagedShipWelderInventory(ManagedShipWelder block, Filters filters) : base(block, ((IMyShipWelder)block.Block).GetInventory(), filters) { }
 
-            public override bool Ready => !block.IsActivated;
+            public override bool Ready => !block.IsActivated && base.Ready;
         }
         public class ManagedShipWelder : ManagedInventoryBlock<IMyShipWelder>
         {

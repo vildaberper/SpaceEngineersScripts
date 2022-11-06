@@ -33,6 +33,15 @@ namespace IngameScript
             public FilterException(string filterString) : base($"Failed to parse filter '{filterString}'") { }
         }
 
+        public class FilterComparer : IComparer<Filter>
+        {
+            public int Compare(Filter a, Filter b) =>
+                b.Priority != a.Priority ? b.Priority - a.Priority :
+                b.HasQuota != a.HasQuota ? b.HasQuota ? 1 : -1 :
+                b.HasQuota && a.HasQuota ? b.Quota < a.Quota ? 1 : -1 :
+                0;
+        }
+
         public class Filter
         {
             readonly HashSet<MyItemType> types;
@@ -82,6 +91,7 @@ namespace IngameScript
         public class Filters : List<Filter>
         {
             public Filters() : base() { }
+            public Filters(IEnumerable<Filter> filter) : base(filter) { }
 
             public static Filters None = new Filters();
 

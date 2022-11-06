@@ -44,6 +44,26 @@ namespace IngameScript
         {
             return sourceInventory.TransferItemToSafe(i, item, amount);
         }
+        public static MyFixedPoint TransferItemTypeTo(this IMyInventory i, IMyInventory dstInventory, MyItemType type, MyFixedPoint amount)
+        {
+            if (!i.CanTransferItemTo(dstInventory, type)) return MyFixedPoint.Zero;
+
+            var transferred = MyFixedPoint.Zero;
+            var safeAmount = MyFixedPoint.Min(dstInventory.FitItems(type), amount);
+            var items = i.GetItems().Where(item => item.Type == type).ToList();
+            for(var ii = 0; ii < items.Count && transferred < safeAmount; ++ii)
+            {
+                var item = items[ii];
+                var toTransfer = MyFixedPoint.Min(item.Amount, safeAmount - transferred);
+                if (!i.TransferItemTo(dstInventory, item, toTransfer)) break;
+                transferred += toTransfer;
+            }
+            return transferred;
+        }
+        public static MyFixedPoint TransferItemTypeFrom(this IMyInventory i, IMyInventory sourceInventory, MyItemType type, MyFixedPoint amount)
+        {
+            return sourceInventory.TransferItemTypeTo(i, type, amount);
+        }
         public static List<MyInventoryItem> GetItems(this IMyInventory i)
         {
             Program.Instance.IMyInventory_GetItems_items.Clear();
