@@ -53,7 +53,7 @@ filter=
 ### Examples
  - A storage cargo with everything except tools and ice in it: `(* -tool -ice p-100 os)`
  - A Refinery to process every ore except platinum: `(* -plat p100 q1000 os)`
- - An access point cargo with components in it: `(component q 100 os)`
+ - An access point cargo with components in it: `(component q100 os)`
  - ...or a more specific filter defined in CustomData:
 ```
 [os]
