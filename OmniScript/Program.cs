@@ -71,6 +71,8 @@ namespace IngameScript
         readonly bool logToSurface = false;
         readonly bool debugMode = false;
 
+        // Valid update frequencies are Update1, Update10 and Update100. Lower is faster.
+        // Instruction count is a rough maximum per cycle. Higher means faster operation.
         const UpdateFrequency manageUpdateFrequency = UpdateFrequency.Update100;
         const int manageTargetInstructionCount = 1000;
 
@@ -93,7 +95,7 @@ namespace IngameScript
         const char parseFilterQuota = 'q';
         const char parseFilterSubtract = '-';
 
-        const string version = "0.0.1";
+        const string version = "1.0.0";
         #endregion
 
         public static Program Instance { get; private set; }
@@ -201,6 +203,21 @@ namespace IngameScript
                 Me.GetSurface(0).WriteText(content);
                 Me.GetSurface(1).WriteText(header);
             }
+
+
+            // Dump item info in CustomData
+            //var ss = new List<string>();
+            //foreach (var item in itemTypes.Values)
+            //{
+            //    ss.Add($"{item.Group}  {item.DisplayName}\n");
+            //}
+            //ss.Sort();
+            //var sb = new StringBuilder();
+            //foreach (var s in ss)
+            //{
+            //    sb.Append(s);
+            //}
+            //Me.CustomData = sb.ToString();
         }
     }
 }
