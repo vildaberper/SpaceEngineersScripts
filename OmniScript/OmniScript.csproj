@@ -41,6 +41,7 @@
     <Compile Include="Items.cs" />
     <Compile Include="Extensions.cs" />
     <Compile Include="Filter.cs" />
+    <Compile Include="ItemTarget.cs" />
     <Compile Include="Managed.cs" />
     <Compile Include="Manager.cs" />
     <Compile Include="MDK\Bootstrapper.cs" />
