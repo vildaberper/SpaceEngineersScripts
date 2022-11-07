@@ -92,7 +92,7 @@ By default, OS will print a form of log in the terminal. Select the Programmable
 
 ## Configuration
 
-Most things the script does can be configured in the top part of the program. Variable names should be pretty self-sxplanatory but most noteworthy is `defaultFilters`. This is where you can change how "hands-off" the script should be. For example, O2/H2 Generators have a default filter of `"ice p100"`. If you replace this part with `""`, generators will no longer pull ice by default. They will still be managed though, which means they will no longer use the conveyor system and auto refill for bottles will be enabled. To disable this behaviour, change `manageGasGenerators` to `false`.
+Most things the script does can be configured in the top part of the program. Variable names should be pretty self-explanatory but most noteworthy is `defaultFilters`. This is where you can change how "hands-off" the script should be. For example, O2/H2 Generators have a default filter of `"ice p100"`. If you replace this part with `""`, generators will no longer pull ice by default. They will still be managed though, which means they will no longer use the conveyor system and auto refill for bottles will be enabled. To disable this behaviour, change `manageGasGenerators` to `false`.
 
 ## Cheat Sheet
 Items can be defined either by group (`Ingot`), name (`Cobalt`) or both (`Ingot/Cobalt`). Not case sensitive. Both group and name will be matched from the beginning, meaning `ing` -> `Ingot`, `cob` -> `Cobalt` (both ore and ingot) and `ing/c` -> `Ingot/Cobalt`.
