@@ -86,9 +86,19 @@ namespace IngameScript
 
                         foreach (var sourceFilter in sourceFilters)
                         {
-                            if (filterComparer.Compare(target.Filter, sourceFilter) <= 0) continue;
+                            if (sourceFilter.Priority < target.Filter.Priority) continue;
+                            else if (sourceFilter.Priority == target.Filter.Priority && (sourceFilter.HasQuota || target.Filter.HasQuota))
+                            {
+                                if (sourceFilter.HasQuota && (!target.Filter.HasQuota || sourceFilter.Quota <= target.Filter.Quota))
+                                {
+                                    toTransfer = MyFixedPoint.Min(toTransfer, sourceAmount - sourceFilter.Quota);
+                                }
+                            }
+                            else
+                            {
+                                toTransfer = MyFixedPoint.Min(toTransfer, sourceFilter.HasQuota ? sourceAmount - sourceFilter.Quota : MyFixedPoint.Zero);
+                            }
 
-                            toTransfer = MyFixedPoint.Min(toTransfer, sourceFilter.HasQuota ? sourceAmount - sourceFilter.Quota : MyFixedPoint.Zero);
                             if (toTransfer <= MyFixedPoint.Zero) break;
                         }
                         if (toTransfer <= MyFixedPoint.Zero) continue;
