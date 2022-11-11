@@ -69,6 +69,7 @@ namespace IngameScript
             {
                 yield return true;
                 var id = block.EntityId;
+                var local = block.CubeGrid == Me.CubeGrid;
                 if (scanned.Contains(id)) continue;
                 scanned.Add(id);
 
@@ -85,7 +86,7 @@ namespace IngameScript
                     sources.Add(assembler.Input);
                     sources.Add(assembler.Output);
                     if (assembler.Input.Filters.Count > 0) targets.Add(assembler.Input);
-                    (assembler.DefinedMaster ? masterAssemblers : slaveAssemblers).Add(id);
+                    if (local) (assembler.DefinedMaster ? masterAssemblers : slaveAssemblers).Add(id);
                 }
                 else if (manageRefineries && block is IMyRefinery)
                 {
@@ -94,7 +95,7 @@ namespace IngameScript
                     sources.Add(refinery.Input);
                     if (refinery.Input.Filters.Count > 0) targets.Add(refinery.Input);
                     sources.Add(refinery.Output);
-                    refineries.Add(id);
+                    if (local) refineries.Add(id);
                 }
                 else if (manageGasGenerators && block is IMyGasGenerator)
                 {
@@ -102,7 +103,7 @@ namespace IngameScript
                     blocks.Add(id, gasGenerator);
                     sources.Add(gasGenerator.Inventory);
                     if (gasGenerator.Inventory.Filters.Count > 0) targets.Add(gasGenerator.Inventory);
-                    gasGenerators.Add(id);
+                    if (local) gasGenerators.Add(id);
                 }
                 else if (manageGasTanks && block is IMyGasTank)
                 {
@@ -110,14 +111,17 @@ namespace IngameScript
                     blocks.Add(id, gasTank);
                     sources.Add(gasTank.Inventory);
                     if (gasTank.Inventory.Filters.Count > 0) targets.Add(gasTank.Inventory);
-                    if (gasTank.IsOxygen) oxygenTanks.Add(id);
-                    else if (gasTank.IsHydrogen) hydrogenTanks.Add(id);
+                    if (local)
+                    {
+                        if (gasTank.IsOxygen) oxygenTanks.Add(id);
+                        else if (gasTank.IsHydrogen) hydrogenTanks.Add(id);
+                    }
                 }
                 else if (manageBatteryBlocks && block is IMyBatteryBlock)
                 {
                     var batteryBlock = new ManagedBatteryBlock((IMyBatteryBlock)block);
                     blocks.Add(id, batteryBlock);
-                    batteryBlocks.Add(id);
+                    if(local) batteryBlocks.Add(id);
                 }
                 else if (manageReactors && block is IMyReactor)
                 {
@@ -125,7 +129,7 @@ namespace IngameScript
                     blocks.Add(id, reactor);
                     sources.Add(reactor.Inventory);
                     if (reactor.Inventory.Filters.Count > 0) targets.Add(reactor.Inventory);
-                    reactors.Add(id);
+                    if (local) reactors.Add(id);
                 }
                 else if (manageShipConnectors && block is IMyShipConnector)
                 {
@@ -133,7 +137,7 @@ namespace IngameScript
                     blocks.Add(id, shipConnector);
                     sources.Add(shipConnector.Inventory);
                     if (shipConnector.Inventory.Filters.Count > 0) targets.Add(shipConnector.Inventory);
-                    shipConnectors.Add(id);
+                    if (local) shipConnectors.Add(id);
                 }
                 else if (manageShipWelders && block is IMyShipWelder)
                 {

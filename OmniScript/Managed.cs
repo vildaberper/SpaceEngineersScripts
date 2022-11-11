@@ -30,7 +30,7 @@ namespace IngameScript
             string Error { get; }
             bool HasError { get; }
             bool Closed { get; }
-            bool Enabled { get; }
+            bool Enabled { get; set; }
             bool Changed { get; }
         }
 
@@ -54,7 +54,11 @@ namespace IngameScript
             public string Error => error;
             public bool HasError => error.Length > 0;
             public bool Closed => block.Closed;
-            public bool Enabled => block.IsWorking;
+            public bool Enabled
+            {
+                get { return !(block is IMyFunctionalBlock) || ((IMyFunctionalBlock)block).Enabled; }
+                set { if (block is IMyFunctionalBlock) { ((IMyFunctionalBlock)block).Enabled = value; } }
+            }
             public virtual bool Changed { get { return !block.CustomName.Equals(name) || !block.CustomData.Equals(data); } }
         }
 
@@ -70,7 +74,7 @@ namespace IngameScript
             public ManagedAssembler Assembler(long id) => this[id] as ManagedAssembler;
             public ManagedRefinery Refinery(long id) => this[id] as ManagedRefinery;
             public ManagedGasGenerator GasGenerator(long id) => this[id] as ManagedGasGenerator;
-            public ManagedReactor Ractor(long id) => this[id] as ManagedReactor;
+            public ManagedReactor Reactor(long id) => this[id] as ManagedReactor;
             public ManagedGasTank GasTank(long id) => this[id] as ManagedGasTank;
             public ManagedBatteryBlock BatteryBlock(long id) => this[id] as ManagedBatteryBlock;
         }
@@ -206,7 +210,7 @@ namespace IngameScript
         {
             public ManagedRefineryInputInventory(ManagedRefinery block, Filters filters) : base(block, ((IMyRefinery)block.Block).InputInventory, filters) { }
 
-            public override bool ApplyFilters => block.Enabled;
+            public override bool ApplyFilters => block.Enabled && base.ApplyFilters;
         }
         public class ManagedRefinery : ManagedProductionBlock<IMyRefinery>
         {
@@ -235,6 +239,9 @@ namespace IngameScript
                 block.UseConveyorSystem = false;
                 Inventory = new ManagedInventory(this, block.GetInventory(), Filters);
             }
+
+            public float CurrentOutput => block.CurrentOutput;
+            public float MaxOutput => block.MaxOutput;
         }
 
         public class ManagedGasTank : ManagedInventoryBlock<IMyGasTank>
@@ -251,6 +258,11 @@ namespace IngameScript
         public class ManagedBatteryBlock : ManagedBlock<IMyBatteryBlock>
         {
             public ManagedBatteryBlock(IMyBatteryBlock block) : base(block) { }
+
+            public float CurrentStoredPower => block.CurrentStoredPower;
+            public float MaxStoredPower => block.MaxStoredPower;
+            public float CurrentOutput => block.CurrentOutput;
+            public float MaxOutput => block.MaxOutput;
         }
 
         public class ManagedShipConnector : ManagedInventoryBlock<IMyShipConnector>

@@ -67,6 +67,11 @@ namespace IngameScript
         const bool manageShipConnectors = true;
         const bool manageShipWelders = true;
 
+        const bool manageReactorsPower = true;
+        const float enableReactorsAtStoredPower = 0.8f;
+        const float disableReactorsAtStoredPower = 0.9f;
+        const float enableReactorsAtOutput = 0.9f;
+
         readonly bool logToEcho = true;
         readonly bool logToSurface = false;
         readonly bool debugMode = false;

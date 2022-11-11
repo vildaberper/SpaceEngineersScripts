@@ -26,6 +26,8 @@ namespace IngameScript
         public static string SubStr(this string s, int begin, int end) => s.Substring(begin, end - begin);
         public static string SubStr(this string s, int begin = 0) => s.SubStr(begin, s.Length);
 
+        public static string ToPercent(this float f) => f.ToString("0.00%");
+
         public static List<IMyTerminalBlock> GetBlocks(this IMyGridTerminalSystem gts)
         {
             Program.Instance.IMyGridTerminalSystem_GetBlocks_blocks.Clear();
