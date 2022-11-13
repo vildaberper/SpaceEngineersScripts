@@ -84,7 +84,7 @@ filter=
 
 ## Assemblers
 
-Assembler inventories will only be pulled from when not crafting. No more scattered materials! Assemblers can be assigned as master by including `master` in the name (not case sensitive). This means that all other assemblers will automatically be set to Cooperative Mode, and when the master crafting queue is empty, the rest will also be cleared. A typical setup would be one master assembler and a bunch of slaves, and you would only interact with the master. Only assemblers stationed on the same grid as the OS Programmable Block will be managed in this way.
+Assembler inventories will only be pulled from when not crafting. No more scattered materials! Assemblers can be assigned as master by including `master` in the name (not case sensitive). This means that all other assemblers will automatically be set to Cooperative Mode. A typical setup would be one master assembler and a bunch of slaves, and you would only interact with the master. Only assemblers stationed on the same grid as the OS Programmable Block will be managed in this way.
 
 ## Power
 

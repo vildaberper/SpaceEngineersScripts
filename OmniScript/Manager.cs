@@ -13,20 +13,17 @@ namespace IngameScript
 
             if (state.masterAssemblers.Count > 0 && state.slaveAssemblers.Count > 0)
             {
-                var isQueueEmpty = true;
                 foreach (var id in state.masterAssemblers.ToList())
                 {
                     yield return true;
                     var assembler = state.blocks.Assembler(id);
                     assembler.CooperativeMode = false;
-                    isQueueEmpty &= assembler.IsQueueEmpty;
                 }
                 foreach (var id in state.slaveAssemblers.ToList())
                 {
                     yield return true;
                     var assembler = state.blocks.Assembler(id);
                     assembler.CooperativeMode = true;
-                    if (isQueueEmpty) assembler.ClearQueue();
                 }
                 if (debugMode)
                 {
