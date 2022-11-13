@@ -253,6 +253,9 @@ namespace IngameScript
 
             public bool IsOxygen => block.IsOxygen();
             public bool IsHydrogen => block.IsHydrogen();
+            public float Capacity => block.Capacity;
+            public double Stored => Capacity * FilledRatio;
+            public double FilledRatio => block.FilledRatio;
         }
 
         public class ManagedBatteryBlock : ManagedBlock<IMyBatteryBlock>

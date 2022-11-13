@@ -68,9 +68,13 @@ namespace IngameScript
         const bool manageShipWelders = true;
 
         const bool manageReactorsPower = true;
-        const float enableReactorsAtStoredPower = 0.8f;
-        const float disableReactorsAtStoredPower = 0.9f;
+        const float enableReactorsAtStoredPower = 0.4f;
+        const float disableReactorsAtStoredPower = 0.8f;
         const float enableReactorsAtOutput = 0.9f;
+
+        const bool manageGasGeneratorsGas = true;
+        const double enableGasGeneratorsAtStoredGas = 0.6d;
+        const double disableGasGeneratorsAtStoredGas = 0.9d;
 
         readonly bool logToEcho = true;
         readonly bool logToSurface = false;
@@ -82,7 +86,7 @@ namespace IngameScript
         const int manageTargetInstructionCount = 1000;
 
         const UpdateFrequency transferUpdateFrequency = UpdateFrequency.Update10;
-        const int transferTargetInstructionCount = 1000;
+        const int transferTargetInstructionCount = 10000;
 
         const UpdateFrequency scanUpdateFrequency = UpdateFrequency.Update100;
         const int scanTargetInstructionCount = 1000;

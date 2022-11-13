@@ -65,9 +65,23 @@ namespace IngameScript
             }
             if (targetsCount != targets.Count) targetsUpdated = true;
 
+            bool foundOtherMe = false;
             foreach (var block in GridTerminalSystem.GetBlocks())
             {
                 yield return true;
+                if (block == Me) continue;
+
+                if (
+                    block is IMyProgrammableBlock &&
+                    (block.CubeGrid.EntityId < Me.CubeGrid.EntityId || block.EntityId < Me.EntityId) &&
+                    ((IMyProgrammableBlock)block).Enabled &&
+                    block.CustomName.EndsWith(myName)
+                    )
+                {
+                    foundOtherMe = true;
+                    continue;
+                }
+
                 var id = block.EntityId;
                 var local = block.CubeGrid == Me.CubeGrid;
                 if (scanned.Contains(id)) continue;
@@ -121,7 +135,7 @@ namespace IngameScript
                 {
                     var batteryBlock = new ManagedBatteryBlock((IMyBatteryBlock)block);
                     blocks.Add(id, batteryBlock);
-                    if(local) batteryBlocks.Add(id);
+                    if (local) batteryBlocks.Add(id);
                 }
                 else if (manageReactors && block is IMyReactor)
                 {
@@ -169,6 +183,10 @@ namespace IngameScript
                     // scanned.Remove(id);
                     // log.Append($"{block.DefinitionDisplayNameText} ({block.CustomName})\n");
                 }
+            }
+            if (state.foundOtherMe = foundOtherMe)
+            {
+                log.Append("Found other script block\n");
             }
             if (targetsCount != targets.Count) targetsUpdated = true;
 

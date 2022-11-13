@@ -22,29 +22,26 @@ namespace IngameScript
 {
     partial class Program
     {
-        void AddItemTarget(MyItemType type, IManagedInventory inventory, Filter filter)
-        {
-            List<ItemTarget> itemTargets;
-            if (!state.itemTargets.TryGetValue(type, out itemTargets)) state.itemTargets.Add(type, itemTargets = new List<ItemTarget>());
-            itemTargets.Add(new ItemTarget(inventory, filter));
-        }
-
         IEnumerator<bool> Transfer(StringBuilder log)
         {
-            if (!state.Initialized) yield break;
+            if (!state.Initialized || state.foundOtherMe) yield break;
 
             if (state.targetsUpdated)
             {
                 foreach (var target in state.itemTargets) target.Value.Clear();
 
-                foreach (var target in state.targets.ToList())
                 {
-                    foreach (var filter in target.Filters)
+                    List<ItemTarget> itemTargets;
+                    foreach (var target in state.targets.ToList())
                     {
-                        foreach (var type in filter.Types)
+                        foreach (var filter in target.Filters)
                         {
-                            yield return true;
-                            AddItemTarget(type, target, filter);
+                            foreach (var type in filter.Types)
+                            {
+                                yield return true;
+                                if (!state.itemTargets.TryGetValue(type, out itemTargets)) state.itemTargets.Add(type, itemTargets = new List<ItemTarget>());
+                                itemTargets.Add(new ItemTarget(target, filter));
+                            }
                         }
                     }
                 }

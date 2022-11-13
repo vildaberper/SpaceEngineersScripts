@@ -88,11 +88,17 @@ Assembler inventories will only be pulled from when not crafting. No more scatte
 
 ## Power
 
-OS can do more than just manage your items, such as automatically toggling your reactors. This means that if you have at least one battery and reactor, the reactor will automatically turn off if your batteries are almost full (90% by default) and vice verca (80% by default). If you are using more power than you can currently supply with batteries, the reactors will turn on. Only reactors stationed on the same grid as the OS Programmable Block will be managed in this way.
+OS can do more than just manage your items, such as automatically toggling your reactors. This means that if you have at least one battery and reactor, the reactor will automatically turn off if your batteries are almost full (80% by default) and vice verca (40% by default). If you are using more power than you can currently supply with batteries, the reactors will turn on. Only reactors stationed on the same grid as the OS Programmable Block will be managed in this way.
+
+## O2/H2
+
+OS can, as with power, manage your O2/H2 generators based on stored gas. This means that if either your oxygen or hydrogen storage is running low, the generator will be turned on and vice verca (60% and 90% by default). Only O2/H2 generators stationed on the same grid as the OS Programmable Block will be managed in this way.
 
 ## Performance
 
 OS allows you to specify roughly how many instructions it is allowed to make per cycle. This value can be very low and it directly relates to server load. The default value is very low, so you probably don't need to touch this in most cases. For very complex grids you might want to increase the number if you think the script is operating too slow.
+
+Only one instance of OS will transfer items per "supergrid". This means that if you dock a ship to a base, both running OS, only one script will transfer items.
 
 ## Debugging
 

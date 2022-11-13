@@ -27,6 +27,7 @@ namespace IngameScript
         public static string SubStr(this string s, int begin = 0) => s.SubStr(begin, s.Length);
 
         public static string ToPercent(this float f) => f.ToString("0.00%");
+        public static string ToPercent(this double d) => d.ToString("0.00%");
 
         public static List<IMyTerminalBlock> GetBlocks(this IMyGridTerminalSystem gts)
         {
@@ -53,7 +54,7 @@ namespace IngameScript
             var transferred = MyFixedPoint.Zero;
             var safeAmount = MyFixedPoint.Min(dstInventory.FitItems(type), amount);
             var items = i.GetItems().Where(item => item.Type == type).ToList();
-            for(var ii = 0; ii < items.Count && transferred < safeAmount; ++ii)
+            for (var ii = 0; ii < items.Count && transferred < safeAmount; ++ii)
             {
                 var item = items[ii];
                 var toTransfer = MyFixedPoint.Min(item.Amount, safeAmount - transferred);
@@ -74,10 +75,10 @@ namespace IngameScript
         }
         public static void SumItems(this IMyInventory i, Dictionary<MyItemType, MyFixedPoint> dict)
         {
-            foreach(var item in i.GetItems())
+            foreach (var item in i.GetItems())
             {
                 MyFixedPoint amount;
-                if(!dict.TryGetValue(item.Type, out amount)) amount = MyFixedPoint.Zero;
+                if (!dict.TryGetValue(item.Type, out amount)) amount = MyFixedPoint.Zero;
                 dict[item.Type] = amount + item.Amount;
             }
         }

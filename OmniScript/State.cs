@@ -27,6 +27,8 @@ namespace IngameScript
             bool initialized = false;
             public bool Initialized => initialized;
 
+            public bool foundOtherMe = false;
+
             public ManagedBlocks blocks = new ManagedBlocks();
             public HashSet<long> scanned = new HashSet<long>();
             public Dictionary<MyItemType, List<ItemTarget>> itemTargets = new Dictionary<MyItemType, List<ItemTarget>>();

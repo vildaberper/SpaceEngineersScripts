@@ -1,22 +1,7 @@
-﻿using Sandbox.Game.EntityComponents;
-using Sandbox.ModAPI.Ingame;
-using Sandbox.ModAPI.Interfaces;
-using SpaceEngineers.Game.ModAPI.Ingame;
-using System;
-using System.Collections;
+﻿using System;
 using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.Linq;
 using System.Text;
-using VRage;
-using VRage.Collections;
-using VRage.Game;
-using VRage.Game.Components;
-using VRage.Game.GUI.TextPanel;
-using VRage.Game.ModAPI.Ingame;
-using VRage.Game.ModAPI.Ingame.Utilities;
-using VRage.Game.ObjectBuilders.Definitions;
-using VRageMath;
 
 namespace IngameScript
 {
@@ -62,7 +47,7 @@ namespace IngameScript
                 }
             }
 
-            if(state.batteryBlocks.Count > 0 && manageReactorsPower && state.reactors.Count > 0)
+            if (state.batteryBlocks.Count > 0 && manageReactorsPower && state.reactors.Count > 0)
             {
                 var CurrentStoredPower = 0f;
                 var MaxStoredPower = 0f;
@@ -106,6 +91,66 @@ namespace IngameScript
                         yield return true;
                         var reactor = state.blocks.Reactor(id);
                         log.Append($" - {reactor.Name}{(reactor.Enabled ? "" : "*")}\n");
+                    }
+                }
+            }
+
+            if (state.gasGenerators.Count > 0 && manageGasGeneratorsGas && (state.oxygenTanks.Count + state.hydrogenTanks.Count > 0))
+            {
+                var OxygenCapacity = 0f;
+                var OxygenStored = 0d;
+                var HydrogenCapacity = 0f;
+                var HydrogenStored = 0d;
+
+                foreach (var id in state.oxygenTanks.ToList())
+                {
+                    yield return true;
+                    var gasTank = state.blocks.GasTank(id);
+                    OxygenCapacity += gasTank.Capacity;
+                    OxygenStored += gasTank.Stored;
+                }
+                foreach (var id in state.hydrogenTanks.ToList())
+                {
+                    yield return true;
+                    var gasTank = state.blocks.GasTank(id);
+                    HydrogenCapacity += gasTank.Capacity;
+                    HydrogenStored += gasTank.Stored;
+                }
+                var StoredGas = Math.Min(OxygenStored / OxygenCapacity, HydrogenStored / HydrogenCapacity);
+
+                var EnableGasGeneratorsAtStoredGas = StoredGas <= enableGasGeneratorsAtStoredGas;
+                if (EnableGasGeneratorsAtStoredGas || StoredGas >= disableGasGeneratorsAtStoredGas)
+                {
+                    foreach (var id in state.gasGenerators.ToList())
+                    {
+                        yield return true;
+                        state.blocks.GasGenerator(id).Enabled = EnableGasGeneratorsAtStoredGas;
+                    }
+                }
+
+                if (debugMode)
+                {
+                    log.Append($"StoredGas: {StoredGas.ToPercent()} ({OxygenStored}/{OxygenCapacity} L O) ({HydrogenStored}/{HydrogenCapacity} L H):\n");
+                    log.Append($"Oxygen ({state.oxygenTanks.Count}):\n");
+                    foreach (var id in state.oxygenTanks.ToList())
+                    {
+                        yield return true;
+                        var gasTank = state.blocks.GasTank(id);
+                        log.Append($" - {gasTank.Name}{(gasTank.Enabled ? "" : "*")} {gasTank.FilledRatio.ToPercent()}\n");
+                    }
+                    log.Append($"Hydrogen ({state.hydrogenTanks.Count}):\n");
+                    foreach (var id in state.hydrogenTanks.ToList())
+                    {
+                        yield return true;
+                        var gasTank = state.blocks.GasTank(id);
+                        log.Append($" - {gasTank.Name}{(gasTank.Enabled ? "" : "*")} {gasTank.FilledRatio.ToPercent()}\n");
+                    }
+                    log.Append($"Generators ({state.gasGenerators.Count}):\n");
+                    foreach (var id in state.gasGenerators.ToList())
+                    {
+                        yield return true;
+                        var gasGenerator = state.blocks.GasGenerator(id);
+                        log.Append($" - {gasGenerator.Name}{(gasGenerator.Enabled ? "" : "*")}\n");
                     }
                 }
             }
