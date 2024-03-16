@@ -1,26 +1,26 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 16
-VisualStudioVersion = 16.0.31019.35
+# Visual Studio Version 17
+VisualStudioVersion = 17.5.33530.505
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AutoInv", "AutoInv\AutoInv.csproj", "{FE13C0E7-5694-4526-AE2F-EFF56AB30411}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AutoInv", "AutoInv\AutoInv.csproj", "{60CD06CB-74E3-4D1F-9860-D2ED74A15EF9}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OmniScript", "OmniScript\OmniScript.csproj", "{45703A5C-6ED0-4A3E-BC13-5F2BFA8F2BF4}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OmniScript", "OmniScript\OmniScript.csproj", "{FC85F121-89AE-49A1-AC0E-D11D7BE4D780}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{FE13C0E7-5694-4526-AE2F-EFF56AB30411}.Debug|x64.ActiveCfg = Debug|x64
-		{FE13C0E7-5694-4526-AE2F-EFF56AB30411}.Debug|x64.Build.0 = Debug|x64
-		{45703A5C-6ED0-4A3E-BC13-5F2BFA8F2BF4}.Debug|x64.ActiveCfg = Debug|x64
-		{45703A5C-6ED0-4A3E-BC13-5F2BFA8F2BF4}.Debug|x64.Build.0 = Debug|x64
+		{60CD06CB-74E3-4D1F-9860-D2ED74A15EF9}.Debug|x64.ActiveCfg = Debug|x64
+		{60CD06CB-74E3-4D1F-9860-D2ED74A15EF9}.Debug|x64.Build.0 = Debug|x64
+		{FC85F121-89AE-49A1-AC0E-D11D7BE4D780}.Debug|x64.ActiveCfg = Debug|x64
+		{FC85F121-89AE-49A1-AC0E-D11D7BE4D780}.Debug|x64.Build.0 = Debug|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
-		SolutionGuid = {9A5CBE30-E307-4CB4-A588-D77B9FB653F5}
+		SolutionGuid = {C7FF4525-EDBD-46DB-B3FD-DDCB2C8FB8E6}
 	EndGlobalSection
 EndGlobal
