@@ -17,12 +17,14 @@ namespace IngameScript
                 {
                     yield return true;
                     var assembler = state.blocks.Assembler(id);
+                    if (assembler == null) continue;
                     assembler.CooperativeMode = false;
                 }
                 foreach (var id in state.slaveAssemblers.ToList())
                 {
                     yield return true;
                     var assembler = state.blocks.Assembler(id);
+                    if (assembler == null) continue;
                     assembler.CooperativeMode = true;
                 }
                 if (debugMode)
@@ -32,6 +34,7 @@ namespace IngameScript
                     {
                         yield return true;
                         var assembler = state.blocks.Assembler(id);
+                        if (assembler == null) continue;
                         log.Append($" - {assembler.Name}{(assembler.Enabled ? "" : "*")}\n");
                     }
                     log.Append($"Slave Assemblers ({state.slaveAssemblers.Count}):\n");
@@ -39,6 +42,7 @@ namespace IngameScript
                     {
                         yield return true;
                         var assembler = state.blocks.Assembler(id);
+                        if (assembler == null) continue;
                         log.Append($" - {assembler.Name}{(assembler.Enabled ? "" : "*")}\n");
                     }
                 }
@@ -54,6 +58,7 @@ namespace IngameScript
                 {
                     yield return true;
                     var battery = state.blocks.BatteryBlock(id);
+                    if (battery == null) continue;
                     CurrentStoredPower += battery.CurrentStoredPower;
                     MaxStoredPower += battery.MaxStoredPower;
                     CurrentOutput += battery.CurrentOutput;
@@ -68,7 +73,9 @@ namespace IngameScript
                     foreach (var id in state.reactors.ToList())
                     {
                         yield return true;
-                        state.blocks.Reactor(id).Enabled = EnableReactorsAtStoredPower;
+                        var reactor = state.blocks.Reactor(id);
+                        if(reactor == null) continue;
+                        reactor.Enabled = EnableReactorsAtStoredPower;
                     }
                 }
 
@@ -80,6 +87,7 @@ namespace IngameScript
                     {
                         yield return true;
                         var battery = state.blocks.BatteryBlock(id);
+                        if (battery == null) continue;
                         log.Append($" - {battery.Name}{(battery.Enabled ? "" : "*")} {(battery.CurrentStoredPower / battery.MaxStoredPower).ToPercent()}\n");
                     }
                     log.Append($"Reactors ({state.reactors.Count}):\n");
@@ -87,6 +95,7 @@ namespace IngameScript
                     {
                         yield return true;
                         var reactor = state.blocks.Reactor(id);
+                        if (reactor == null) continue;
                         log.Append($" - {reactor.Name}{(reactor.Enabled ? "" : "*")}\n");
                     }
                 }
@@ -103,6 +112,7 @@ namespace IngameScript
                 {
                     yield return true;
                     var gasTank = state.blocks.GasTank(id);
+                    if (gasTank == null) continue;
                     OxygenCapacity += gasTank.Capacity;
                     OxygenStored += gasTank.Stored;
                 }
@@ -110,6 +120,7 @@ namespace IngameScript
                 {
                     yield return true;
                     var gasTank = state.blocks.GasTank(id);
+                    if (gasTank == null) continue;
                     HydrogenCapacity += gasTank.Capacity;
                     HydrogenStored += gasTank.Stored;
                 }
@@ -121,7 +132,9 @@ namespace IngameScript
                     foreach (var id in state.gasGenerators.ToList())
                     {
                         yield return true;
-                        state.blocks.GasGenerator(id).Enabled = EnableGasGeneratorsAtStoredGas;
+                        var gasGenerator = state.blocks.GasGenerator(id);
+                        if (gasGenerator == null) continue;
+                        gasGenerator.Enabled = EnableGasGeneratorsAtStoredGas;
                     }
                 }
 
@@ -133,6 +146,7 @@ namespace IngameScript
                     {
                         yield return true;
                         var gasTank = state.blocks.GasTank(id);
+                        if (gasTank == null) continue;
                         log.Append($" - {gasTank.Name}{(gasTank.Enabled ? "" : "*")} {gasTank.FilledRatio.ToPercent()}\n");
                     }
                     log.Append($"Hydrogen ({state.hydrogenTanks.Count}):\n");
@@ -140,6 +154,7 @@ namespace IngameScript
                     {
                         yield return true;
                         var gasTank = state.blocks.GasTank(id);
+                        if (gasTank == null) continue;
                         log.Append($" - {gasTank.Name}{(gasTank.Enabled ? "" : "*")} {gasTank.FilledRatio.ToPercent()}\n");
                     }
                     log.Append($"Generators ({state.gasGenerators.Count}):\n");
@@ -147,6 +162,7 @@ namespace IngameScript
                     {
                         yield return true;
                         var gasGenerator = state.blocks.GasGenerator(id);
+                        if (gasGenerator == null) continue;
                         log.Append($" - {gasGenerator.Name}{(gasGenerator.Enabled ? "" : "*")}\n");
                     }
                 }

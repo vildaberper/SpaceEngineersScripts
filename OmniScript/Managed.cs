@@ -71,12 +71,12 @@ namespace IngameScript
         {
             public ManagedBlocks() : base() { }
 
-            public ManagedAssembler Assembler(long id) => this[id] as ManagedAssembler;
-            public ManagedRefinery Refinery(long id) => this[id] as ManagedRefinery;
-            public ManagedGasGenerator GasGenerator(long id) => this[id] as ManagedGasGenerator;
-            public ManagedReactor Reactor(long id) => this[id] as ManagedReactor;
-            public ManagedGasTank GasTank(long id) => this[id] as ManagedGasTank;
-            public ManagedBatteryBlock BatteryBlock(long id) => this[id] as ManagedBatteryBlock;
+            public ManagedAssembler Assembler(long id) { IManagedBlock result; TryGetValue(id, out result); return result as ManagedAssembler; }
+            public ManagedRefinery Refinery(long id) { IManagedBlock result; TryGetValue(id, out result); return result as ManagedRefinery; }
+            public ManagedGasGenerator GasGenerator(long id) { IManagedBlock result; TryGetValue(id, out result); return result as ManagedGasGenerator; }
+            public ManagedReactor Reactor(long id) { IManagedBlock result; TryGetValue(id, out result); return result as ManagedReactor; }
+            public ManagedGasTank GasTank(long id) { IManagedBlock result; TryGetValue(id, out result); return result as ManagedGasTank; }
+            public ManagedBatteryBlock BatteryBlock(long id) { IManagedBlock result; TryGetValue(id, out result); return result as ManagedBatteryBlock; }
         }
 
         public interface IManagedInventory
@@ -105,7 +105,7 @@ namespace IngameScript
             public IMyInventory Inventory => inventory;
             public Filters Filters => filters;
             public virtual bool ApplyFilters => true;
-            public virtual bool Ready => true;
+            public virtual bool Ready => block.Block.IsFunctional;
         }
         public class ManagedInventory : ManagedInventory<IManagedBlock>
         {

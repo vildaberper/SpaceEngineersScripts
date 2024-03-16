@@ -25,7 +25,7 @@ namespace IngameScript
         public string GetDefaultFilter(string definition)
         {
             string filter;
-            return defaultFilters.TryGetValue(definition, out filter) ? filter : "-n";
+            return defaultFilters.TryGetValue(definition, out filter) ? filter : "";
         }
 
         public class FilterException : Exception

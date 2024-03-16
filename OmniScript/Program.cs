@@ -49,7 +49,7 @@ namespace IngameScript
             {"Missile Turret", "p100 q10"},
             {"O2/H2 Generator", "ice p100"},
             {"Oxygen Tank", ""},
-            {"Refinery", "p100 q1000"},
+            {"Refinery", "p100 q1000;p100 q10000"},
             {"Reloadable Rocket Launcher", "p100 q10"},
             {"Small Cargo Container", ""},
             {"Small Hydrogen Tank", ""},
@@ -104,7 +104,7 @@ namespace IngameScript
         const char parseFilterQuota = 'q';
         const char parseFilterSubtract = '-';
 
-        const string version = "1.0.1";
+        const string version = "1.0.2";
         #endregion
 
         public static Program Instance { get; private set; }
