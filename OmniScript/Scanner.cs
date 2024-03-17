@@ -83,7 +83,7 @@ namespace IngameScript
                 }
 
                 var id = block.EntityId;
-                var local = block.CubeGrid == Me.CubeGrid;
+                var local = block.CubeGrid == Me.CubeGrid || block.CubeGrid.CustomName.StartsWith(Me.CubeGrid.CustomName);
                 if (scanned.Contains(id)) continue;
                 scanned.Add(id);
 

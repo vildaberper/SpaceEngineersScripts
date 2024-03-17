@@ -104,7 +104,7 @@ namespace IngameScript
         const char parseFilterQuota = 'q';
         const char parseFilterSubtract = '-';
 
-        const string version = "1.0.2";
+        const string version = "1.0.3";
         #endregion
 
         public static Program Instance { get; private set; }
